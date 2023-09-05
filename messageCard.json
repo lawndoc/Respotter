@@ -1,0 +1,7 @@
+{
+        "@context": "https://schema.org/extensions",
+        "@type": "MessageCard",
+        "themeColor": "0076a8",
+        "title": "Respotter Alert!",
+        "text": "ERROR"
+}
