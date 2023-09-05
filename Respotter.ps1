@@ -40,7 +40,7 @@ if (Test-Path $pathToSettings -PathType Leaf) {
     $settings = $jsonContent | ConvertFrom-Json
 }
 else {
-    Write-Host "The Config JSON file does not exist, please download it from the GitHub page here: "
+    Write-Host "The Config JSON file does not exist, please download it from the GitHub page here: https://github.com/badenerb/Respotter/blob/main/config.json and paste in the working directory"
     Exit
 }
 
@@ -97,7 +97,7 @@ if ($ips -ne "") {
             $jsonData = Get-Content $messageCardPath -Raw
         }
         else {
-            Write-Host "The message card JSON file does not exist, please download it from the GitHub page here: "
+            Write-Host "The message card JSON file does not exist, please download it from the GitHub page here: https://github.com/badenerb/Respotter/blob/main/messageCard.json and paste in the working directory"
             Exit
         }
 
