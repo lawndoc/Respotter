@@ -3,7 +3,7 @@
 # Respotter is a reliable, simple, Responder HoneyPot!
 
 ## Installation
-Download this PowerShell Script from the repo. Right click the Respotter.ps1 file. Run as a Powershell Script. Three simple steps!
+Download the entire repo as a Zip. Unzip the file. Right click the Respotter.ps1 file. Run as a Powershell Script. Four simple steps!
 
 ## Output
 This script will output one of two things when ran. 
