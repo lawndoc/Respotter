@@ -28,8 +28,10 @@ function Get-TextBeforeComma {
     }
 }
 
+$resPath = Get-Location | Select-Object -ExpandProperty Path
+
 # Specify the path to the JSON file
-$pathToSettings = ".\config.json"
+$pathToSettings = $resPath + "\config.json"
 $settings = ""
 # Check if the file exists
 if (Test-Path $pathToSettings -PathType Leaf) {
@@ -40,7 +42,7 @@ if (Test-Path $pathToSettings -PathType Leaf) {
     $settings = $jsonContent | ConvertFrom-Json
 }
 else {
-    Write-Host "The Config JSON file does not exist, please download it from the GitHub page here: https://github.com/badenerb/Respotter/blob/main/config.json and paste in the working directory"
+    Write-Host "The Config JSON file does not exist, please download it from the GitHub page here: https://github.com/badenerb/Respotter/blob/main/config.json and paste in the working directory. Your working directory is" $resPath
     Exit
 }
 
@@ -91,13 +93,13 @@ if ($ips -ne "") {
     {
         $jsonData = ''
 
-        $messageCardPath = ".\messageCard.json"
+        $messageCardPath = $resPath + "\messageCard.json"
         if (Test-Path $messageCardPath -PathType Leaf) {
             # Read the JSON content from the file
             $jsonData = Get-Content $messageCardPath -Raw
         }
         else {
-            Write-Host "The message card JSON file does not exist, please download it from the GitHub page here: https://github.com/badenerb/Respotter/blob/main/messageCard.json and paste in the working directory"
+            Write-Host "The message card JSON file does not exist, please download it from the GitHub page here: https://github.com/badenerb/Respotter/blob/main/messageCard.json and paste in the working directory.  Your working directory is" $resPath
             Exit
         }
 
