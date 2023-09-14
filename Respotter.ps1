@@ -104,17 +104,21 @@ if ($ips -ne "") {
         }
 
         $messageCardJson = $jsonData | ConvertFrom-Json
-        if(!$settings.ip4Only)
+        if($settings.ip4Only)
         {
             $messageCardJson.text ="Responder was found running at " + $ip4
+            if($settings.defenderLink){$messageCardJson.text = "Responder was found running at [" + $ip4 + "](https://security.microsoft.com/ips/" + $ip4 + ")" }
         }
-        elseif(!$settings.ip6Only)
+        elseif($settings.ip6Only)
         {
             $messageCardJson.text ="Responder was found running at " + $ip6
+            if($settings.defenderLink){$messageCardJson.text = "Responder was found running at [" + $ip6 + "](https://security.microsoft.com/ips/" + $ip6 + ")" }
         }
         else{
             $messageCardJson.text = "Responder was found running at " + $ip4 + " " + $ip6
+            if($settings.defenderLink){$messageCardJson.text = "Responder was found running at [" + $ip4 + "](https://security.microsoft.com/ips/" + $ip4 + ")" }
         }
+
         $messageCardFinal = $messageCardJson | ConvertTo-Json 
 
         $WebhookSent = Invoke-RestMethod -Uri $settings.webhookURI -Method POST -Body $messageCardFinal -ContentType "Application/Json"
