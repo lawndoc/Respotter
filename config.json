@@ -12,7 +12,7 @@
     "comment3":"This Setting can be useful if you want to change the current false DNS Name, to be more sneaky against the Responder Machine",
     "default3": "Loremipsumdolorsitamet",
 
-    "webhookURI": "https://vermeercorp.webhook.office.com/webhookb2/0c9c11f0-d408-4824-b086-1756568a8997@a092aca4-b5d0-43a3-aef5-ae017bd139bd/IncomingWebhook/8248d1c4846d45ecaf982696f8c95e38/afc23c12-2856-4323-9265-a7a33c3d7469",
+    "webhookURI": "",
     "comment4": "Insert your webhookURI to get alerts when Responder is found. If you don't want alerts, leave the setting blank (Default).",
     "default4": "",
 
