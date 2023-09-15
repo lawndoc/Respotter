@@ -16,7 +16,7 @@
     "comment4": "Insert your webhookURI to get alerts when Responder is found. If you don't want alerts, leave the setting blank (Default).",
     "default4": "",
 
-    "defenderLink": true,
+    "defenderLink": false,
     "comment5": "Mark true if you would like your alert to have a Defender alert linked in the message card.",
     "default5": false
   }
