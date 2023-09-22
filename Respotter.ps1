@@ -106,17 +106,17 @@ if ($ips -ne "") {
         $messageCardJson = $jsonData | ConvertFrom-Json
         if($settings.ip4Only)
         {
-            $messageCardJson.text ="Responder was found running at " + $ip4
-            if($settings.defenderLink){$messageCardJson.text = "Responder was found running at [" + $ip4 + "](https://security.microsoft.com/ips/" + $ip4 + ")" }
+            $messageCardJson.text = -join( "Responder was found running at ", $ip4); 
+            if($settings.defenderLink){$messageCardJson.text = -join("Responder was found running at [", $ip4, "](https://security.microsoft.com/ips/", $ip4 , ")") }
         }
         elseif($settings.ip6Only)
         {
-            $messageCardJson.text ="Responder was found running at " + $ip6
-            if($settings.defenderLink){$messageCardJson.text = "Responder was found running at [" + $ip6 + "](https://security.microsoft.com/ips/" + $ip6 + ")" }
+            $messageCardJson.text =-join( "Responder was found running at ", $ip6); 
+            if($settings.defenderLink){$messageCardJson.text = -join("Responder was found running at [", $ip6, "](https://security.microsoft.com/ips/", $ip6 , ")") }
         }
         else{
-            $messageCardJson.text = "Responder was found running at " + $ip4 + " " + $ip6
-            if($settings.defenderLink){$messageCardJson.text = "Responder was found running at [" + $ip4 + "](https://security.microsoft.com/ips/" + $ip4 + ")" }
+            $messageCardJson.text = -join( "Responder was found running at ", $ip4, " and ", $ip6); 
+            if($settings.defenderLink){$messageCardJson.text =  -join("Responder was found running at [", $ip4, " and ", $ip6, "](https://security.microsoft.com/ips/", $ip4 , ")") }
         }
 
         $messageCardFinal = $messageCardJson | ConvertTo-Json 

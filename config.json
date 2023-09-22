@@ -3,16 +3,16 @@
     "comment1":"This Setting can be useful if using Respotter as a scheduled service",
     "default1": false,
 
-    "ip4Only": true,
+    "ip4Only": false,
     "ip6Only": false,
     "comment2":"This Setting can allow you to only output ipv4 or ipv6 depending on your enviroment.",
     "default2": false,
 
     "falseDNSName": "Loremipsumdolorsitamet",
-    "comment3":"This Setting can be useful if you want to change the current false DNS Name, to be more sneaky against the Responder Machine",
+    "comment3":"This Setting can be useful if you want to change the current false DNS Name, to be more sneaky against the Responder Machine. Also make sure there are no spaces",
     "default3": "Loremipsumdolorsitamet",
 
-    "webhookURI": "",
+    "webhookURI": ""
     "comment4": "Insert your webhookURI to get alerts when Responder is found. If you don't want alerts, leave the setting blank (Default).",
     "default4": "",
 
