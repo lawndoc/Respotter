@@ -1,4 +1,4 @@
-![image](https://github.com/badenerb/Respotter/assets/97712507/02dff0f7-9ad9-4bcd-bba5-bd06fbee70d8)
+![respotterLogo](https://github.com/badenerb/Respotter/assets/97712507/62aa8d04-595f-45f5-bd28-aeda59b12626)
 
 # Respotter is a reliable, simple, Responder HoneyPot!
 
