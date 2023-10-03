@@ -39,6 +39,8 @@ You shouldn't, this command is just a DNS Resolution, so anyone can do it. But y
 
 ## Demo
 
+![ezgif-2-cacdf85020](https://github.com/badenerb/Respotter/assets/97712507/cf4f03b8-b765-4eac-99cd-4604450cefb3)
+
 https://www.youtube.com/watch?v=vcPbdAVR560&ab_channel=BadenErb
 
 
