@@ -46,6 +46,7 @@ else {
     Exit
 }
 
+#When you see this it means the option checking the no output option
 if (!$settings.noOutput) {
     Write-Host "
     ____                        __  __           
