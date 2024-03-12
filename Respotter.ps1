@@ -28,6 +28,77 @@ function Get-TextBeforeComma {
     }
 }
 
+#This is the actual scanning function for Respotter
+function scan ($ips){
+    if ($ips -ne "") {
+        if (!$settings.ip6Only) {
+            $ip4 = Get-TextAfterComma -inputString $ips
+        }
+        if (!$settings.ip4Only) {
+            $ip6 = Get-TextBeforeComma -inputString $ips
+        }
+        if (!$settings.noOutput) {
+            Write-Host "Responder present at: "
+            if (!$settings.ip6Only) {
+                Write-Host "    IP V4:" $ip4
+            }
+            if (!$settings.ip4Only) {
+                Write-Host "    IP V6:" $ip6
+            }
+        }
+            
+        if(!$settings.webhookURI.Length -eq 0)
+        {
+            $jsonData = ''
+    
+            $messageCardPath = $resPath + "\messageCard.json"
+            if (Test-Path $messageCardPath -PathType Leaf) {
+                # Read the JSON content from the file
+                $jsonData = Get-Content $messageCardPath -Raw
+            }
+            else {
+                Write-Host "The message card JSON file does not exist, please download it from the GitHub page here: https://github.com/badenerb/Respotter/blob/main/messageCard.json and paste in the working directory.  Your working directory is" $resPath
+                Exit
+            }
+    
+            $messageCardJson = $jsonData | ConvertFrom-Json
+            if($settings.ip4Only)
+            {
+                $messageCardJson.text = -join( "Responder was found running at ", $ip4); 
+                if($settings.defenderLink){$messageCardJson.text = -join("Responder was found running at [", $ip4, "](https://security.microsoft.com/ips/", $ip4 , ")") }
+            }
+            elseif($settings.ip6Only)
+            {
+                $messageCardJson.text =-join( "Responder was found running at ", $ip6); 
+                if($settings.defenderLink){$messageCardJson.text = -join("Responder was found running at [", $ip6, "](https://security.microsoft.com/ips/", $ip6 , ")") }
+            }
+            else{
+              $messageCardJson.text = -join( "Responder was found running at ", $ip4, " and ", $ip6); 
+              if($settings.defenderLink){$messageCardJson.text =  -join("Responder was found running at [", $ip4, " and ", $ip6, "](https://security.microsoft.com/ips/", $ip4 , ")") }
+            }
+
+            $messageCardFinal = $messageCardJson | ConvertTo-Json 
+
+            $WebhookSent = Invoke-RestMethod -Uri $settings.webhookURI -Method POST -Body $messageCardFinal -ContentType "Application/Json"
+    
+            if($WebhookSent -eq 1)
+            {
+                if (!$settings.noOutput) {Write-Host "Webhook successfully posted!"}
+            }
+            else
+            {
+                if (!$settings.noOutput) {Write-Host "Webhook failed to post!"}
+            }
+        }
+    }
+    else {
+        if (!$settings.noOutput) {
+            Write-Host "Responder not found at "
+            Get-Date
+        }
+    }
+}
+
 $resPath = Get-Location | Select-Object -ExpandProperty Path
 
 # Specify the path to the JSON file
@@ -64,84 +135,13 @@ if (!$settings.noOutput) {
 $networkName = Get-NetConnectionProfile | Select-Object -ExpandProperty Name
 
 if (!$settings.noOutput) {
-    Write-Host "Scanning for Responder running on"$networkName"
-
-This should only take a few seconds.
-"
+    Write-Host "Scanning for Responder running on"$networkName
+    Write-Host "Ctl + C to stop the script"
 }
 
-$search = (Resolve-DnsName -LlmnrOnly $settings.falseDNSName 2> $Null)
-$ips = $search.IpAddress -Join ", "
-
-if ($ips -ne "") {
-    if (!$settings.ip6Only) {
-        $ip4 = Get-TextAfterComma -inputString $ips
-    }
-    if (!$settings.ip4Only) {
-        $ip6 = Get-TextBeforeComma -inputString $ips
-    }
-    if (!$settings.noOutput) {
-        Write-Host "Responder present at: "
-        if (!$settings.ip6Only) {
-            Write-Host "    IP V4:" $ip4
-        }
-        if (!$settings.ip4Only) {
-            Write-Host "    IP V6:" $ip6
-        }
-    }
-        
-    if(!$settings.webhookURI.Length -eq 0)
-    {
-        $jsonData = ''
-
-        $messageCardPath = $resPath + "\messageCard.json"
-        if (Test-Path $messageCardPath -PathType Leaf) {
-            # Read the JSON content from the file
-            $jsonData = Get-Content $messageCardPath -Raw
-        }
-        else {
-            Write-Host "The message card JSON file does not exist, please download it from the GitHub page here: https://github.com/badenerb/Respotter/blob/main/messageCard.json and paste in the working directory.  Your working directory is" $resPath
-            Exit
-        }
-
-        $messageCardJson = $jsonData | ConvertFrom-Json
-        if($settings.ip4Only)
-        {
-            $messageCardJson.text = -join( "Responder was found running at ", $ip4); 
-            if($settings.defenderLink){$messageCardJson.text = -join("Responder was found running at [", $ip4, "](https://security.microsoft.com/ips/", $ip4 , ")") }
-        }
-        elseif($settings.ip6Only)
-        {
-            $messageCardJson.text =-join( "Responder was found running at ", $ip6); 
-            if($settings.defenderLink){$messageCardJson.text = -join("Responder was found running at [", $ip6, "](https://security.microsoft.com/ips/", $ip6 , ")") }
-        }
-        else{
-            $messageCardJson.text = -join( "Responder was found running at ", $ip4, " and ", $ip6); 
-            if($settings.defenderLink){$messageCardJson.text =  -join("Responder was found running at [", $ip4, " and ", $ip6, "](https://security.microsoft.com/ips/", $ip4 , ")") }
-        }
-
-        $messageCardFinal = $messageCardJson | ConvertTo-Json 
-
-        $WebhookSent = Invoke-RestMethod -Uri $settings.webhookURI -Method POST -Body $messageCardFinal -ContentType "Application/Json"
-    
-        if($WebhookSent -eq 1)
-        {
-            if (!$settings.noOutput) {Write-Host "Webhook successfully posted!"}
-        }
-        else
-        {
-            if (!$settings.noOutput) {Write-Host "Webhook failed to post!"}
-        }
-    }
-}
-else {
-    if (!$settings.noOutput) {
-        Write-Host "Responder not found..."
-    }
-}
-
-if (!$settings.noOutput) 
-{
-    Write-Host "Press Enter to close" 
-    Read-Host
+while(0 -ne 3){
+    $search = (Resolve-DnsName -LlmnrOnly $settings.falseDNSName 2> $Null)
+    $ips = $search.IpAddress -Join ", "
+    scan $ips
+    Start-Sleep -Seconds $settings.timeBetweenScans
 }

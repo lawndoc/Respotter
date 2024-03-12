@@ -12,11 +12,15 @@
     "comment3":"This Setting can be useful if you want to change the current false DNS Name, to be more sneaky against the Responder Machine. Also make sure there are no spaces",
     "default3": "Loremipsumdolorsitamet",
 
-    "webhookURI": ""
-    "comment4": "Insert your webhookURI to get alerts when Responder is found. If you don't want alerts, leave the setting blank (Default).",
-    "default4": "",
+    "timeBetweenScans": 5,
+    "comment4":"This setting is the amount of time that the scripts waits in between scans, in seconds",
+    "default4": 5,
+
+    "webhookURI": "",
+    "comment5": "Insert your webhookURI to get alerts when Responder is found. If you don't want alerts, leave the setting blank (Default).",
+    "default5": "",
 
     "defenderLink": false,
-    "comment5": "Mark true if you would like your alert to have a Defender alert linked in the message card.",
-    "default5": false
+    "comment6": "Mark true if you would like your alert to have a Defender alert linked in the message card.",
+    "default6": false
   }
