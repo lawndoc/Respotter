@@ -1,6 +1,6 @@
-![respotterLogo](https://github.com/badenerb/Respotter/assets/97712507/ab9f36e2-de4c-47e1-b227-7d0c502d3b82)
+![respotterLogo](./assets/respotter_logo.png)
 
-# Respotter is a reliable, simple, Responder HoneyPot!
+# Respotter is a reliable Responder HoneyPot!
 
 ## Installation
 Download the entire repo as a Zip. Unzip the file. Right click the Respotter.ps1 file. Run as a Powershell Script. Four simple steps!
@@ -39,7 +39,7 @@ You shouldn't, this command is just a DNS Resolution, so anyone can do it. But y
 
 ## Demo
 
-![ezgif-2-cacdf85020](https://github.com/badenerb/Respotter/assets/97712507/cf4f03b8-b765-4eac-99cd-4604450cefb3)
+![demo gif](./assets/respotter_demo.gif)
 
 https://www.youtube.com/watch?v=vcPbdAVR560&ab_channel=BadenErb
 
@@ -56,12 +56,8 @@ You can use this as you please!
 If you have any feedback, please reach out to me, I am still learning and always want to be learning so feel free to shoot me an email at baden.erb@gmail.com
 
 
-## About Me
+## Contributors
 
-Website: [badenerb.com](https://badenerb.com) 
+This project was originally created by [Baden Erb](https://badenerb.com) ([@badenerb](https://github.com/badenerb))
 
-LinkedIn: [Baden Erb](https://www.linkedin.com/in/badenerb/)
-
-Instagram: [berb.png](https://www.instagram.com/berb.png)
-
-Thanks for taking a look at my project!
+Current maintainer: [C.J. May](https://cjmay.info) ([@lawndoc](https://github.com/lawndoc))
