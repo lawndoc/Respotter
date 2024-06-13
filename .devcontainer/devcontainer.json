@@ -1,0 +1,7 @@
+{
+    "name": "Respotter",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "context": ".."
+    }
+}
