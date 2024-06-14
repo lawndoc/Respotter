@@ -38,9 +38,8 @@ class Respotter:
         response = sr1(packet, timeout=3, verbose=1)
         if response is not None and response.haslayer(NBNSQueryResponse):
             # Print all resolved IP addresses
-            for i in range(response[NBNSQueryResponse].ancount):
-                if response[NBNSQueryResponse].an[i].TYPE == 1:
-                    print(f"!!! Responder detected at: {response[NBNSQueryResponse].an[i].rdata}")
+            for i in range(response[NBNSQueryResponse].RDLENGTH):
+                print(f"!!! Responder detected at: {response[NBNSQueryResponse].ADDR_ENTRY[i].NB_ADDRESS}")
     
     def run(self):
         while True:
