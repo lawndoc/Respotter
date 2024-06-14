@@ -34,7 +34,7 @@ class Respotter:
         
     def send_nbns_request(self):
         # NBNS uses the broadcast IP 255.255.255.255 and UDP port 137
-        packet = IP(dst="255.255.255.255")/UDP(dport=137)/NBNSQueryRequest(QUESTION_NAME=self.hostname)
+        packet = IP(dst="255.255.255.255")/UDP(sport=137, dport=137)/NBNSQueryRequest(SUFFIX="file server service", QUESTION_NAME=self.hostname, QUESTION_TYPE="NB")
         response = sr1(packet, timeout=3, verbose=0)
         if response is not None and response.haslayer(NBNSQueryResponse):
             # Print all resolved IP addresses
