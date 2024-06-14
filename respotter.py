@@ -15,7 +15,7 @@ class Respotter:
     def send_llmnr_request(self):
         # LLMNR uses the multicast IP 224.0.0.252 and UDP port 5355
         packet = IP(dst="224.0.0.252")/UDP(dport=5355)/LLMNRQuery(qd=DNSQR(qname=self.hostname))
-        response = sr1(packet, timeout=3, verbose=1)
+        response = sr1(packet, timeout=3)
         if response is not None and response.haslayer(DNS):
             # Print all resolved IP addresses
             for i in range(response[LLMNRResponse].ancount):
@@ -25,7 +25,7 @@ class Respotter:
     def send_mdns_request(self):
         # mDNS uses the multicast IP 224.0.0.251 and UDP port 5353
         packet = IP(dst="224.0.0.251")/UDP(dport=5353)/DNS(rd=1, qd=DNSQR(qname=self.hostname))
-        response = sr1(packet, timeout=3, verbose=1)
+        response = sr1(packet, timeout=3)
         if response is not None and response.haslayer(DNS):
             # Print all resolved IP addresses
             for i in range(response[DNS].ancount):
@@ -35,7 +35,7 @@ class Respotter:
     def send_nbns_request(self):
         # NBNS uses the broadcast IP 255.255.255.255 and UDP port 137
         packet = IP(dst="255.255.255.255")/UDP(dport=137)/NBNSQueryRequest(QUESTION_NAME=self.hostname)
-        response = sr1(packet, timeout=3, verbose=1)
+        response = sr1(packet, timeout=3)
         if response is not None and response.haslayer(NBNSQueryResponse):
             # Print all resolved IP addresses
             for i in range(response[NBNSQueryResponse].RDLENGTH):
