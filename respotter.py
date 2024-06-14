@@ -22,7 +22,7 @@ class Respotter:
         # LLMNR uses the multicast IP 224.0.0.252 and UDP port 5355
         packet = IP(dst="224.0.0.252")/UDP(dport=5355)/LLMNRQuery(qd=DNSQR(qname=self.hostname))
         response = sr1(packet, timeout=self.timeout, verbose=self.verbosity)
-        if response is not None and response.haslayer(DNS):
+        if response is not None and response.haslayer(LLMNRResponse):
             # Print all resolved IP addresses
             for i in range(response[LLMNRResponse].ancount):
                 if response[LLMNRResponse].an[i].type == 1:  # Type 1 is A record, which contains the IP address
