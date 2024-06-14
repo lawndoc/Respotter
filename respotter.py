@@ -3,6 +3,7 @@
 from scapy.all import *
 from scapy.layers.dns import DNS, DNSQR
 from scapy.layers.inet import IP, UDP
+from scapy.layers.llmnr import LLMNRQuery, LLMNRResponse
 from scapy.layers.netbios import NBNSQueryRequest, NBNSQueryResponse
 from time import sleep
 
@@ -13,13 +14,13 @@ class Respotter:
     
     def send_llmnr_request(self):
         # LLMNR uses the multicast IP 224.0.0.252 and UDP port 5355
-        packet = IP(dst="224.0.0.252")/UDP(dport=5355)/DNS(rd=1, qd=DNSQR(qname=self.hostname))
+        packet = IP(dst="224.0.0.252")/UDP(dport=5355)/LLMNRQuery(qd=DNSQR(qname=self.hostname))
         response = sr1(packet, timeout=3, verbose=1)
         if response is not None and response.haslayer(DNS):
             # Print all resolved IP addresses
-            for i in range(response[DNS].ancount):
-                if response[DNS].an[i].type == 1:  # Type 1 is A record, which contains the IP address
-                    print(f"!!! Responder detected at: {response[DNS].an[i].rdata}")  # rdata field of the A record contains the IP address
+            for i in range(response[LLMNRResponse].ancount):
+                if response[LLMNRResponse].an[i].type == 1:  # Type 1 is A record, which contains the IP address
+                    print(f"!!! Responder detected at: {response[LLMNRResponse].an[i].rdata}")  # rdata field of the A record contains the IP address
         
     def send_mdns_request(self):
         # mDNS uses the multicast IP 224.0.0.251 and UDP port 5353
