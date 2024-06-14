@@ -55,5 +55,5 @@ class Respotter:
             sleep(self.delay)
 
 if __name__ == "__main__":
-    respotter = Respotter(delay=0)
+    respotter = Respotter(delay=3)
     respotter.daemon()
