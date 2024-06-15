@@ -4,7 +4,7 @@ from scapy.all import *
 from scapy.layers.dns import DNS, DNSQR
 from scapy.layers.inet import IP, UDP
 from scapy.layers.llmnr import LLMNRQuery, LLMNRResponse
-from scapy.layers.netbios import NBNSQueryRequest, NBNSQueryResponse
+from scapy.layers.netbios import NBNSQueryRequest, NBNSQueryResponse, NBNSHeader
 from time import sleep
 
 class Respotter:
@@ -40,7 +40,7 @@ class Respotter:
         
     def send_nbns_request(self):
         # NBNS uses the broadcast IP 255.255.255.255 and UDP port 137
-        packet = IP(dst="255.255.255.255")/UDP(sport=137, dport=137)/NBNSQueryRequest(SUFFIX="file server service", QUESTION_NAME=self.hostname, QUESTION_TYPE="NB")
+        packet = IP(dst="255.255.255.255")/UDP(sport=137, dport=137)/NBNSHeader(OPCODE=0x0, NM_FLAGS=0x11, QDCOUNT=1)/NBNSQueryRequest(SUFFIX="file server service", QUESTION_NAME=self.hostname, QUESTION_TYPE="NB")
         response = sr1(packet, timeout=self.timeout, verbose=self.verbosity)
         if response is not None and response.haslayer(NBNSQueryResponse):
             # Print all resolved IP addresses
