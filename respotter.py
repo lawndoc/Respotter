@@ -7,7 +7,7 @@ from scapy.layers.llmnr import LLMNRQuery, LLMNRResponse
 from scapy.layers.netbios import NBNSQueryRequest, NBNSQueryResponse, NBNSHeader
 from time import sleep
 
-respotter_ascii_logo = """\
+respotter_ascii_logo = r"""
     ____                        __  __           
    / __ \___  _________  ____  / /_/ /____  _____
   / /_/ / _ \/ ___/ __ \/ __ \/ __/ __/ _ \/ ___/
