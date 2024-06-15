@@ -7,6 +7,15 @@ from scapy.layers.llmnr import LLMNRQuery, LLMNRResponse
 from scapy.layers.netbios import NBNSQueryRequest, NBNSQueryResponse, NBNSHeader
 from time import sleep
 
+respotter_ascii_logo = """
+    ____                        __  __           
+   / __ \___  _________  ____  / /_/ /____  _____
+  / /_/ / _ \/ ___/ __ \/ __ \/ __/ __/ _ \/ ___/
+ / _, _/  __(__  ) /_/ / /_/ / /_/ /_/  __/ /    
+/_/ |_|\___/____/ .___/\____/\__/\__/\___/_/     
+               /_/                              
+"""
+
 class Respotter:
     def __init__(self,
                  delay=30,
@@ -55,5 +64,7 @@ class Respotter:
             sleep(self.delay)
 
 if __name__ == "__main__":
+    print(respotter_ascii_logo)
+    print("\nScanning for Responder...\n")
     respotter = Respotter(delay=3)
     respotter.daemon()
