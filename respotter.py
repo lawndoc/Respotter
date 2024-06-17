@@ -6,6 +6,7 @@ from scapy.layers.inet import IP, UDP
 from scapy.layers.llmnr import LLMNRQuery, LLMNRResponse
 from scapy.layers.netbios import NBNSQueryRequest, NBNSQueryResponse, NBNSHeader
 from time import sleep
+from optparse import OptionParser
 
 respotter_ascii_logo = r"""
     ____                        __  __           
@@ -26,6 +27,18 @@ class Respotter:
         self.hostname = hostname
         self.timeout = timeout
         self.verbosity = verbosity
+
+    def get_arguments(self):
+        parser = OptionParser()
+        parser.add_option("-d", "--delay", dest="delay", help="Delay between scans in seconds", default=30)
+        parser.add_option("-t", "--timeout", dest="timeout", help="Timeout for each scan in seconds", default=3)
+        parser.add_option("-v", "--verbosity", dest="verbosity", help="Verbosity level (0-3)", default=0)
+        parser.add_option("-n", "--hostname", dest="hostname", help="Hostname to scan for", default="Loremipsumdolorsitamet")
+        (options, args) = parser.parse_args()
+        self.delay = int(options.delay)
+        self.timeout = int(options.timeout)
+        self.verbosity = int(options.verbosity)
+        self.hostname = options.hostname
     
     def send_llmnr_request(self):
         # LLMNR uses the multicast IP 224.0.0.252 and UDP port 5355
@@ -66,5 +79,6 @@ class Respotter:
 if __name__ == "__main__":
     print(respotter_ascii_logo)
     print("\nScanning for Responder...\n")
-    respotter = Respotter(delay=3)
+    respotter = Respotter()
+    respotter.get_arguments()  # Getting arguments from the user
     respotter.daemon()
