@@ -2,6 +2,8 @@
 
 # Respotter is a reliable Responder HoneyPot!
 
+Respotter is currently undergoing a rewrite in Python
+
 ## Installation
 Download the entire repo as a Zip. Unzip the file. Right click the Respotter.ps1 file. Run as a Powershell Script. Four simple steps!
 
