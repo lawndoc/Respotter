@@ -6,6 +6,7 @@ from scapy.layers.inet import IP, UDP
 from scapy.layers.llmnr import LLMNRQuery, LLMNRResponse
 from scapy.layers.netbios import NBNSQueryRequest, NBNSQueryResponse, NBNSHeader
 from time import sleep
+from optparse import OptionParser
 
 respotter_ascii_logo = r"""
     ____                        __  __           
@@ -66,5 +67,17 @@ class Respotter:
 if __name__ == "__main__":
     print(respotter_ascii_logo)
     print("\nScanning for Responder...\n")
-    respotter = Respotter(delay=3)
+    
+    parser = OptionParser()
+    parser.add_option("-d", "--delay", dest="delay", help="Delay between scans in seconds", default=30)
+    parser.add_option("-t", "--timeout", dest="timeout", help="Timeout for each scan in seconds", default=3)
+    parser.add_option("-v", "--verbosity", dest="verbosity", help="Verbosity level (0-3)", default=0)
+    parser.add_option("-n", "--hostname", dest="hostname", help="Hostname to scan for", default="Loremipsumdolorsitamet")
+    (options, args) = parser.parse_args()
+
+    respotter = Respotter(delay=int(options.delay),
+                          hostname=options.hostname,
+                          timeout=int(options.timeout),
+                          verbosity=int(options.verbosity))
+    
     respotter.daemon()
