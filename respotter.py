@@ -22,7 +22,7 @@ class Respotter:
     def __init__(self,
                  delay=30,
                  hostname="Loremipsumdolorsitamet",
-                 timeout=3,
+                 timeout=1,
                  verbosity=0):
         self.delay = delay
         self.hostname = hostname
@@ -42,9 +42,9 @@ class Respotter:
         # Print all resolved IP addresses
         for sniffed_packet in response:
             if sniffed_packet.haslayer(LLMNRResponse):
-                for i in range(sniffed_packet[LLMNRResponse].ancount):
-                    if sniffed_packet[LLMNRResponse].an[i].type == 1:  # Type 1 is A record, which contains the IP address
-                        print(f"!!! Responder detected at: {sniffed_packet[LLMNRResponse].an[i].rdata}")  # rdata field of the A record contains the IP address
+                for answer in sniffed_packet[LLMNRResponse].an:
+                    if answer.type == 1:  # Type 1 is A record, which contains the IP address
+                        print(f"!!! Responder detected at: {answer.rdata}")
         
     def send_mdns_request(self):
         # mDNS uses the multicast IP 224.0.0.251 and UDP port 5353
@@ -59,9 +59,9 @@ class Respotter:
         # Print all resolved IP addresses
         for sniffed_packet in response:
             if sniffed_packet is not None and sniffed_packet.haslayer(DNS):
-                for i in range(sniffed_packet[DNS].ancount):
-                    if sniffed_packet[DNS].an[i].type == 1:
-                        print(f"!!! Responder detected at: {sniffed_packet[DNS].an[i].rdata}")
+                for answer in sniffed_packet[DNS].an:
+                    if answer.type == 1:
+                        print(f"!!! Responder detected at: {answer.rdata}")
         
     def send_nbns_request(self):
         # NBNS uses the broadcast IP 255.255.255.255 and UDP port 137
@@ -76,8 +76,8 @@ class Respotter:
         # Print all resolved IP addresses
         for sniffed_packet in response:
             if sniffed_packet is not None and sniffed_packet.haslayer(NBNSQueryResponse):
-                for i in range(sniffed_packet[NBNSQueryResponse].RDLENGTH):
-                    print(f"!!! Responder detected at: {sniffed_packet[NBNSQueryResponse].ADDR_ENTRY[i].NB_ADDRESS}")
+                for answer in sniffed_packet[NBNSQueryResponse].ADDR_ENTRY:
+                    print(f"!!! Responder detected at: {answer.NB_ADDRESS}")
     
     def daemon(self):
         while True:
