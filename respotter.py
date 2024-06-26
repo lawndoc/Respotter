@@ -36,13 +36,15 @@ class Respotter:
         sniffer.start()
         sr1(packet, timeout=self.timeout, verbose=self.verbosity)
         time.sleep(self.timeout)
-        sniffer.stop()
-        response = sniffer.results
-        if response is not None and response.haslayer(LLMNRResponse):
-            # Print all resolved IP addresses
-            for i in range(response[LLMNRResponse].ancount):
-                if response[LLMNRResponse].an[i].type == 1:  # Type 1 is A record, which contains the IP address
-                    print(f"!!! Responder detected at: {response[LLMNRResponse].an[i].rdata}")  # rdata field of the A record contains the IP address
+        response = sniffer.stop()
+        if not response:
+            return
+        # Print all resolved IP addresses
+        for sniffed_packet in response:
+            if sniffed_packet.haslayer(LLMNRResponse):
+                for i in range(sniffed_packet[LLMNRResponse].ancount):
+                    if sniffed_packet[LLMNRResponse].an[i].type == 1:  # Type 1 is A record, which contains the IP address
+                        print(f"!!! Responder detected at: {sniffed_packet[LLMNRResponse].an[i].rdata}")  # rdata field of the A record contains the IP address
         
     def send_mdns_request(self):
         # mDNS uses the multicast IP 224.0.0.251 and UDP port 5353
@@ -51,13 +53,15 @@ class Respotter:
         sniffer.start()
         sr1(packet, timeout=self.timeout, verbose=self.verbosity)
         time.sleep(self.timeout)
-        sniffer.stop()
-        response = sniffer.results
-        if response is not None and response.haslayer(DNS):
-            # Print all resolved IP addresses
-            for i in range(response[DNS].ancount):
-                if response[DNS].an[i].type == 1:
-                    print(f"!!! Responder detected at: {response[DNS].an[i].rdata}")
+        response = sniffer.stop()
+        if not response:
+            return
+        # Print all resolved IP addresses
+        for sniffed_packet in response:
+            if sniffed_packet is not None and sniffed_packet.haslayer(DNS):
+                for i in range(sniffed_packet[DNS].ancount):
+                    if sniffed_packet[DNS].an[i].type == 1:
+                        print(f"!!! Responder detected at: {sniffed_packet[DNS].an[i].rdata}")
         
     def send_nbns_request(self):
         # NBNS uses the broadcast IP 255.255.255.255 and UDP port 137
@@ -66,12 +70,14 @@ class Respotter:
         sniffer.start()
         sr1(packet, timeout=self.timeout, verbose=self.verbosity)
         time.sleep(self.timeout)
-        sniffer.stop()
-        response = sniffer.results
-        if response is not None and response.haslayer(NBNSQueryResponse):
-            # Print all resolved IP addresses
-            for i in range(response[NBNSQueryResponse].RDLENGTH):
-                print(f"!!! Responder detected at: {response[NBNSQueryResponse].ADDR_ENTRY[i].NB_ADDRESS}")
+        response = sniffer.stop()
+        if not response:
+            return
+        # Print all resolved IP addresses
+        for sniffed_packet in response:
+            if sniffed_packet is not None and sniffed_packet.haslayer(NBNSQueryResponse):
+                for i in range(sniffed_packet[NBNSQueryResponse].RDLENGTH):
+                    print(f"!!! Responder detected at: {sniffed_packet[NBNSQueryResponse].ADDR_ENTRY[i].NB_ADDRESS}")
     
     def daemon(self):
         while True:
