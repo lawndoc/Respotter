@@ -21,7 +21,7 @@ class Respotter:
     def __init__(self,
                  delay=30,
                  hostname="Loremipsumdolorsitamet",
-                 timeout=3,
+                 timeout=1,
                  verbosity=0):
         self.delay = delay
         self.hostname = hostname
@@ -31,31 +31,70 @@ class Respotter:
     def send_llmnr_request(self):
         # LLMNR uses the multicast IP 224.0.0.252 and UDP port 5355
         packet = IP(dst="224.0.0.252")/UDP(dport=5355)/LLMNRQuery(qd=DNSQR(qname=self.hostname))
-        response = sr1(packet, timeout=self.timeout, verbose=self.verbosity)
-        if response is not None and response.haslayer(LLMNRResponse):
-            # Print all resolved IP addresses
-            for i in range(response[LLMNRResponse].ancount):
-                if response[LLMNRResponse].an[i].type == 1:  # Type 1 is A record, which contains the IP address
-                    print(f"!!! Responder detected at: {response[LLMNRResponse].an[i].rdata}")  # rdata field of the A record contains the IP address
+        sniffer = AsyncSniffer(filter="udp dst port 5355", store=True)
+        sniffer.start()
+        sleep(0.5)
+        sr1(packet, timeout=self.timeout, verbose=0)
+        sleep(self.timeout)
+        response = sniffer.stop()
+        if not response:
+            if self.verbosity >= 1:
+                print(f"No response (LLMNR -> {self.hostname})")
+            return
+        if self.verbosity >=1:
+            for p in response:
+                print(p)
+        # Print all resolved IP addresses
+        for sniffed_packet in response:
+            if sniffed_packet.haslayer(LLMNRResponse):
+                for answer in sniffed_packet[LLMNRResponse].an:
+                    if answer.type == 1:  # Type 1 is A record, which contains the IP address
+                        print(f"!!! Responder detected at: {answer.rdata} (LLMNR -> {self.hostname})")
         
     def send_mdns_request(self):
         # mDNS uses the multicast IP 224.0.0.251 and UDP port 5353
         packet = IP(dst="224.0.0.251")/UDP(dport=5353)/DNS(rd=1, qd=DNSQR(qname=self.hostname))
-        response = sr1(packet, timeout=self.timeout, verbose=self.verbosity)
-        if response is not None and response.haslayer(DNS):
-            # Print all resolved IP addresses
-            for i in range(response[DNS].ancount):
-                if response[DNS].an[i].type == 1:
-                    print(f"!!! Responder detected at: {response[DNS].an[i].rdata}")
+        sniffer = AsyncSniffer(filter="udp dst port 5353", store=True)
+        sniffer.start()
+        sleep(0.5)
+        sr1(packet, timeout=self.timeout, verbose=0)
+        sleep(self.timeout)
+        response = sniffer.stop()
+        if not response:
+            if self.verbosity >= 1:
+                print(f"No response (mDNS -> {self.hostname})")
+            return
+        if self.verbosity >=1:
+            for p in response:
+                print(p)
+        # Print all resolved IP addresses
+        for sniffed_packet in response:
+            if sniffed_packet is not None and sniffed_packet.haslayer(DNS):
+                for answer in sniffed_packet[DNS].an:
+                    if answer.type == 1:
+                        print(f"!!! Responder detected at: {answer.rdata} (mDNS -> {self.hostname})")
         
     def send_nbns_request(self):
-        # NBNS uses the broadcast IP 255.255.255.255 and UDP port 137
+        # change IP(dst= to your local broadcast IP
         packet = IP(dst="255.255.255.255")/UDP(sport=137, dport=137)/NBNSHeader(OPCODE=0x0, NM_FLAGS=0x11, QDCOUNT=1)/NBNSQueryRequest(SUFFIX="file server service", QUESTION_NAME=self.hostname, QUESTION_TYPE="NB")
-        response = sr1(packet, timeout=self.timeout, verbose=self.verbosity)
-        if response is not None and response.haslayer(NBNSQueryResponse):
-            # Print all resolved IP addresses
-            for i in range(response[NBNSQueryResponse].RDLENGTH):
-                print(f"!!! Responder detected at: {response[NBNSQueryResponse].ADDR_ENTRY[i].NB_ADDRESS}")
+        sniffer = AsyncSniffer(filter="udp dst port 137", store=True)
+        sniffer.start()
+        sleep(0.5)
+        sr1(packet, timeout=self.timeout, verbose=0)
+        sleep(self.timeout)
+        response = sniffer.stop()
+        if not response:
+            if self.verbosity >= 1:
+                print("No response (NBNS -> {self.hostname})")
+            return
+        if self.verbosity >=1:
+            for p in response:
+                print(p)
+        # Print all resolved IP addresses
+        for sniffed_packet in response:
+            if sniffed_packet is not None and sniffed_packet.haslayer(NBNSQueryResponse):
+                for answer in sniffed_packet[NBNSQueryResponse].ADDR_ENTRY:
+                    print(f"!!! Responder detected at: {answer.NB_ADDRESS} (NBNS -> {self.hostname})")
     
     def daemon(self):
         while True:
