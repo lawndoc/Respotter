@@ -76,7 +76,7 @@ class Respotter:
                         print(f"!!! Responder detected at: {answer.rdata} (mDNS -> {self.hostname})")
         
     def send_nbns_request(self):
-        # NBNS uses the broadcast IP 255.255.255.255 and UDP port 137
+        # change IP(dst= to your local broadcast IP
         packet = IP(dst="255.255.255.255")/UDP(sport=137, dport=137)/NBNSHeader(OPCODE=0x0, NM_FLAGS=0x11, QDCOUNT=1)/NBNSQueryRequest(SUFFIX="file server service", QUESTION_NAME=self.hostname, QUESTION_TYPE="NB")
         sniffer = AsyncSniffer(filter="udp dst port 137", store=True)
         sniffer.start()
