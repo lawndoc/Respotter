@@ -35,7 +35,7 @@ class Respotter:
         sniffer = AsyncSniffer(filter="udp dst port 5355", store=True)
         sniffer.start()
         sleep(0.5)
-        sr1(packet, timeout=self.timeout, verbose=self.verbosity)
+        sr1(packet, timeout=self.timeout, verbose=0)
         sleep(self.timeout)
         response = sniffer.stop()
         if not response:
@@ -58,7 +58,7 @@ class Respotter:
         sniffer = AsyncSniffer(filter="udp dst port 5353", store=True)
         sniffer.start()
         sleep(0.5)
-        sr1(packet, timeout=self.timeout, verbose=self.verbosity)
+        sr1(packet, timeout=self.timeout, verbose=0)
         sleep(self.timeout)
         response = sniffer.stop()
         if not response:
@@ -81,7 +81,7 @@ class Respotter:
         sniffer = AsyncSniffer(filter="udp dst port 137", store=True)
         sniffer.start()
         sleep(0.5)
-        sr1(packet, timeout=self.timeout, verbose=self.verbosity)
+        sr1(packet, timeout=self.timeout, verbose=0)
         sleep(self.timeout)
         response = sniffer.stop()
         if not response:
