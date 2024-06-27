@@ -27,16 +27,12 @@ class Respotter:
         self.hostname = hostname
         self.timeout = timeout
         self.verbosity = verbosity
+        conf.checkIPaddr = False  # multicast/broadcast responses won't come from dst IP
     
     def send_llmnr_request(self):
         # LLMNR uses the multicast IP 224.0.0.252 and UDP port 5355
         packet = IP(dst="224.0.0.252")/UDP(dport=5355)/LLMNRQuery(qd=DNSQR(qname=self.hostname))
-        sniffer = AsyncSniffer(filter="udp dst port 5355", store=True)
-        sniffer.start()
-        sleep(0.5)
-        sr1(packet, timeout=self.timeout, verbose=0)
-        sleep(self.timeout)
-        response = sniffer.stop()
+        response = sr1(packet, timeout=self.timeout, verbose=0)
         if not response:
             if self.verbosity >= 1:
                 print(f"No response (LLMNR -> {self.hostname})")
@@ -54,12 +50,7 @@ class Respotter:
     def send_mdns_request(self):
         # mDNS uses the multicast IP 224.0.0.251 and UDP port 5353
         packet = IP(dst="224.0.0.251")/UDP(dport=5353)/DNS(rd=1, qd=DNSQR(qname=self.hostname))
-        sniffer = AsyncSniffer(filter="udp dst port 5353", store=True)
-        sniffer.start()
-        sleep(0.5)
-        sr1(packet, timeout=self.timeout, verbose=0)
-        sleep(self.timeout)
-        response = sniffer.stop()
+        response = sr1(packet, timeout=self.timeout, verbose=0)
         if not response:
             if self.verbosity >= 1:
                 print(f"No response (mDNS -> {self.hostname})")
@@ -77,12 +68,7 @@ class Respotter:
     def send_nbns_request(self):
         # change IP(dst= to your local broadcast IP
         packet = IP(dst="255.255.255.255")/UDP(sport=137, dport=137)/NBNSHeader(OPCODE=0x0, NM_FLAGS=0x11, QDCOUNT=1)/NBNSQueryRequest(SUFFIX="file server service", QUESTION_NAME=self.hostname, QUESTION_TYPE="NB")
-        sniffer = AsyncSniffer(filter="udp dst port 137", store=True)
-        sniffer.start()
-        sleep(0.5)
-        sr1(packet, timeout=self.timeout, verbose=0)
-        sleep(self.timeout)
-        response = sniffer.stop()
+        response = sr1(packet, timeout=self.timeout, verbose=0)
         if not response:
             if self.verbosity >= 1:
                 print("No response (NBNS -> {self.hostname})")
