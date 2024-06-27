@@ -82,11 +82,14 @@ class Respotter:
                 for answer in sniffed_packet[NBNSQueryResponse].ADDR_ENTRY:
                     print(f"[!] [NBT-NS] Responder detected at: {answer.NB_ADDRESS} - responded to name '{self.hostname}'")
     
-    def daemon(self):
+    def daemon(self, excluded_protocols=[""]):
         while True:
-            self.send_llmnr_request()
-            self.send_mdns_request()
-            self.send_nbns_request()
+            if "llmnr" not in excluded_protocols:
+                self.send_llmnr_request()
+            if "mdns" not in excluded_protocols:
+                self.send_mdns_request()
+            if "nbns" not in excluded_protocols:
+                self.send_nbns_request()
             sleep(self.delay)
 
 if __name__ == "__main__":
@@ -98,11 +101,20 @@ if __name__ == "__main__":
     parser.add_option("-t", "--timeout", dest="timeout", help="Timeout for each scan in seconds", default=3)
     parser.add_option("-v", "--verbosity", dest="verbosity", help="Verbosity level (0-3)", default=0)
     parser.add_option("-n", "--hostname", dest="hostname", help="Hostname to scan for", default="Loremipsumdolorsitamet")
+    parser.add_option("-x", "--exclude", dest="exclude", help="Protocols to exclude from scanning (e.g. 'llmnr,nbns')", default="")
     (options, args) = parser.parse_args()
+    
+    excluded_protocols = options.exclude.split(",")
+    if excluded_protocols == [""]:
+        pass
+    for protocol in excluded_protocols:
+        if protocol not in ["llmnr", "mdns", "nbns", ""]:
+            print("[!] Error - exclusions must be a comma separated list of the following options: llmnr,mdns,nbns")
+            exit(1)
 
     respotter = Respotter(delay=int(options.delay),
                           hostname=options.hostname,
                           timeout=int(options.timeout),
                           verbosity=int(options.verbosity))
     
-    respotter.daemon()
+    respotter.daemon(excluded_protocols)
