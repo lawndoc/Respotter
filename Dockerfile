@@ -19,7 +19,7 @@ FROM ubuntu:latest AS runner-image
 
 # install python
 ARG DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && apt-get install --no-install-recommends -y python3.11 python3-venv && \
+RUN apt-get update && apt-get install --no-install-recommends -y python3.12 python3.12-venv && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # setup app directory
