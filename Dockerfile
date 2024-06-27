@@ -15,6 +15,7 @@ COPY . .
 COPY --from=build /app/venv /app/venv
 
 USER root
+ENV PYTHONBUFFERED=1
 ENV PATH="/app/venv/bin:$PATH"
 
 ENTRYPOINT ["python", "./respotter.py"]
