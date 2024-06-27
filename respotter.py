@@ -35,7 +35,7 @@ class Respotter:
         response = sr1(packet, timeout=self.timeout, verbose=0)
         if not response:
             if self.verbosity >= 1:
-                print(f"No response (LLMNR -> {self.hostname})")
+                print(f"[*] [LLMNR] No response for '{self.hostname}'")
             return
         if self.verbosity >=1:
             for p in response:
@@ -45,7 +45,7 @@ class Respotter:
             if sniffed_packet.haslayer(LLMNRResponse):
                 for answer in sniffed_packet[LLMNRResponse].an:
                     if answer.type == 1:  # Type 1 is A record, which contains the IP address
-                        print(f"!!! Responder detected at: {answer.rdata} (LLMNR -> {self.hostname})")
+                        print(f"[!] [LLMNR] Responder detected at: {answer.rdata} - responded to name '{self.hostname}'")
         
     def send_mdns_request(self):
         # mDNS uses the multicast IP 224.0.0.251 and UDP port 5353
@@ -53,7 +53,7 @@ class Respotter:
         response = sr1(packet, timeout=self.timeout, verbose=0)
         if not response:
             if self.verbosity >= 1:
-                print(f"No response (mDNS -> {self.hostname})")
+                print(f"[*] [MDNS] No response for '{self.hostname}'")
             return
         if self.verbosity >=1:
             for p in response:
@@ -63,7 +63,7 @@ class Respotter:
             if sniffed_packet is not None and sniffed_packet.haslayer(DNS):
                 for answer in sniffed_packet[DNS].an:
                     if answer.type == 1:
-                        print(f"!!! Responder detected at: {answer.rdata} (mDNS -> {self.hostname})")
+                        print(f"[!] [MDNS] Responder detected at: {answer.rdata} - responded to name '{self.hostname}'")
         
     def send_nbns_request(self):
         # change IP(dst= to your local broadcast IP
@@ -71,7 +71,7 @@ class Respotter:
         response = sr1(packet, timeout=self.timeout, verbose=0)
         if not response:
             if self.verbosity >= 1:
-                print("No response (NBNS -> {self.hostname})")
+                print("[*] [NBT-NS] No response for '{self.hostname}'")
             return
         if self.verbosity >=1:
             for p in response:
@@ -80,7 +80,7 @@ class Respotter:
         for sniffed_packet in response:
             if sniffed_packet is not None and sniffed_packet.haslayer(NBNSQueryResponse):
                 for answer in sniffed_packet[NBNSQueryResponse].ADDR_ENTRY:
-                    print(f"!!! Responder detected at: {answer.NB_ADDRESS} (NBNS -> {self.hostname})")
+                    print(f"[!] [NBT-NS] Responder detected at: {answer.NB_ADDRESS} - responded to name '{self.hostname}'")
     
     def daemon(self):
         while True:
