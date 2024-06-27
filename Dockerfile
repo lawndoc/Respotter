@@ -32,6 +32,5 @@ COPY --from=deps /root/venv /root/venv
 USER root
 ENV VIRTUAL_ENV=/root/venv
 ENV PATH="/root/venv/bin:$PATH"
-ENV PYTHONBUFFERED=1
 
-ENTRYPOINT ["python", "./respotter.py"]
+ENTRYPOINT ["python", "-u", "./respotter.py"]
