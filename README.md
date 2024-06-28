@@ -2,42 +2,43 @@
 
 # Respotter is a reliable Responder HoneyPot!
 
-Respotter is currently undergoing a rewrite in Python
-
-## Installation
-Download the entire repo as a Zip. Unzip the file. Right click the Respotter.ps1 file. Run as a Powershell Script. Four simple steps!
-
-## Output
-This script will output one of two things when ran. 
-
-When no Responder is found on your network, 
-
-"Responder not found..."
-
-When Responder is found on your network, 
-
-Responder present at: (The IP Address will then be shown here)
+*status*: Respotter is currently undergoing a rewrite in Python. Basic functionality works, but new features are being added rapidly. Major changes may happen at any time.
 
 ## How it works
-This script really hinges on one PowerShell CmdLet:
-```PowerShell
-Resolve-DnsName -LlmnrOnly Loremipsumdolorsitamet
+This application uses LLMNR, mDNS, and NBNS protols to search for a bogus hostname that does not exist (default: Loremipsumdolorsitamet). Responder "responds" to any DNS query, correct or incorrect. If the requests get a response back, then it means that Responder is likely running on your network. 
+
+## Installation
+1. Clone the repo:
+```bash
+git clone https://github.com/lawndoc/Respotter
+cd Respotter
 ```
-This Cmdlet in this application queiries the DNS with a bogus Domain name that does not exist, in this case: Loremipsumdolorsitamet. The output of the DNS Server's response is then analyized to see if there is a Responder running; since Responder "responds" to any DNS query, correct or incorrect.
 
-## FAQ
+2. Create your config file:
+```bash
+cp respotter.conf.template respotter.conf
+vim respotter.conf
+```
 
-#### Question 1: How can I set this up to run as a scheduled task?
+3. Setup a venv and run the script:
+```bash
+python3 -m venv venv
+./venv/bin/pip install -r requirements.txt
+sudo ./venv/bin/python ./respotter.py
+```
 
-Convert the Respotter.ps1 file to a Executable file by running: 
+OR
 
-    PS C:\> Install-Module ps2exe
-    Invoke-ps2exe .\Respotter.ps1 .\Respotter.exe
-Then, set up the scheduled task on this executable, in the same directory
+3. Build and run the Docker container:
+```bash
+docker build -t respotter .
+docker run --rm -d --net=host --name=respotter respotter
+```
 
-#### Question 2: Do I need special permissions to run this?
+## Output
+When Responder is found on your network:
 
-You shouldn't, this command is just a DNS Resolution, so anyone can do it. But you may need extra permissions to run as a schedueled service.
+`[!] [<PROTOCOL>] Responder detected at: X.X.X.X - responded to name 'Loremipsumdolorsitamet'`
 
 ## Demo
 
@@ -50,16 +51,10 @@ https://www.youtube.com/watch?v=vcPbdAVR560&ab_channel=BadenErb
 
 [MIT](https://choosealicense.com/licenses/mit/) 
 
-You can use this as you please!
-
-
-## Feedback
-
-If you have any feedback, please reach out to me, I am still learning and always want to be learning so feel free to shoot me an email at baden.erb@gmail.com
-
-
 ## Contributors
 
 This project was originally created by [Baden Erb](https://badenerb.com) ([@badenerb](https://github.com/badenerb))
 
-Current maintainer: [C.J. May](https://cjmay.info) ([@lawndoc](https://github.com/lawndoc))
+Current maintainers:
+* [C.J. May](https://cjmay.info) ([@lawndoc](https://github.com/lawndoc))
+* [Matt Perry]() ([@xmjp](https://github.com/xmjp))
