@@ -7,6 +7,8 @@ from scapy.layers.llmnr import LLMNRQuery, LLMNRResponse
 from scapy.layers.netbios import NBNSQueryRequest, NBNSQueryResponse, NBNSHeader
 from time import sleep
 from optparse import OptionParser
+from .teams import send_teams_message
+import json
 
 respotter_ascii_logo = r"""
     ____                        __  __           
@@ -28,6 +30,9 @@ class Respotter:
         self.timeout = timeout
         self.verbosity = verbosity
         conf.checkIPaddr = False  # multicast/broadcast responses won't come from dst IP
+        with open("respotter.conf", "r") as config_file:
+            self.config = json.load(config_file)
+        self.is_daemon = False    
     
     def send_llmnr_request(self):
         # LLMNR uses the multicast IP 224.0.0.252 and UDP port 5355
@@ -46,6 +51,8 @@ class Respotter:
                 for answer in sniffed_packet[LLMNRResponse].an:
                     if answer.type == 1:  # Type 1 is A record, which contains the IP address
                         print(f"[!] [LLMNR] Responder detected at: {answer.rdata} - responded to name '{self.hostname}'")
+                        if self.is_daemon:
+                            send_teams_message(self.config["webhook_url"], answer.rdata)
         
     def send_mdns_request(self):
         # mDNS uses the multicast IP 224.0.0.251 and UDP port 5353
@@ -64,6 +71,8 @@ class Respotter:
                 for answer in sniffed_packet[DNS].an:
                     if answer.type == 1:
                         print(f"[!] [MDNS] Responder detected at: {answer.rdata} - responded to name '{self.hostname}'")
+                        if self.is_daemon:
+                            send_teams_message(self.config["webhook_url"], answer.rdata)
         
     def send_nbns_request(self):
         # WORKAROUND: Scapy not matching long req to resp (secdev/scapy PR #4446)
@@ -83,8 +92,12 @@ class Respotter:
             if sniffed_packet is not None and sniffed_packet.haslayer(NBNSQueryResponse):
                 for answer in sniffed_packet[NBNSQueryResponse].ADDR_ENTRY:
                     print(f"[!] [NBT-NS] Responder detected at: {answer.NB_ADDRESS} - responded to name '{hostname}'")
+                    if self.is_daemon:
+                        send_teams_message(self.config["webhook_url"], answer.rdata)
+
     
     def daemon(self, excluded_protocols=[""]):
+        self.is_daemon = True
         while True:
             if "llmnr" not in excluded_protocols:
                 self.send_llmnr_request()
