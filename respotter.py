@@ -66,12 +66,14 @@ class Respotter:
                         print(f"[!] [MDNS] Responder detected at: {answer.rdata} - responded to name '{self.hostname}'")
         
     def send_nbns_request(self):
+        # WORKAROUND: Scapy not matching long req to resp (secdev/scapy PR #4446)
+        hostname = self.hostname[:15]
         # change IP(dst= to your local broadcast IP
-        packet = IP(dst="255.255.255.255")/UDP(sport=137, dport=137)/NBNSHeader(OPCODE=0x0, NM_FLAGS=0x11, QDCOUNT=1)/NBNSQueryRequest(SUFFIX="file server service", QUESTION_NAME=self.hostname, QUESTION_TYPE="NB")
+        packet = IP(dst="255.255.255.255")/UDP(sport=137, dport=137)/NBNSHeader(OPCODE=0x0, NM_FLAGS=0x11, QDCOUNT=1)/NBNSQueryRequest(SUFFIX="file server service", QUESTION_NAME=hostname, QUESTION_TYPE="NB")
         response = sr1(packet, timeout=self.timeout, verbose=0)
         if not response:
             if self.verbosity >= 1:
-                print("[*] [NBT-NS] No response for '{self.hostname}'")
+                print("[*] [NBT-NS] No response for '{hostname}'")
             return
         if self.verbosity >=1:
             for p in response:
@@ -80,7 +82,7 @@ class Respotter:
         for sniffed_packet in response:
             if sniffed_packet is not None and sniffed_packet.haslayer(NBNSQueryResponse):
                 for answer in sniffed_packet[NBNSQueryResponse].ADDR_ENTRY:
-                    print(f"[!] [NBT-NS] Responder detected at: {answer.NB_ADDRESS} - responded to name '{self.hostname}'")
+                    print(f"[!] [NBT-NS] Responder detected at: {answer.NB_ADDRESS} - responded to name '{hostname}'")
     
     def daemon(self, excluded_protocols=[""]):
         while True:
