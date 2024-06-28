@@ -9,7 +9,7 @@ on:
       - .devcontainer
       - assets
       - LICENSE
-      - README
+      - README.md
   workflow_dispatch:
 
 jobs:
