@@ -1,0 +1,28 @@
+name: "Bump Version Tag"
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - .gitignore
+      - .devcontainer
+      - assets
+      - LICENSE
+      - README
+  workflow_dispatch:
+
+jobs:
+  bump-tag:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Bump version and push tag
+      uses: anothrNick/github-tag-action@1.64.0 # Don't use @master or @v1 unless you're happy to test the latest version
+      env:
+        GITHUB_TOKEN: ${{ secrets.PAT }}
+        WITH_V: true
+        DEFAULT_BUMP: patch
