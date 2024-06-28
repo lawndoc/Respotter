@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 
+import json
+from optparse import OptionParser
 from scapy.all import *
 from scapy.layers.dns import DNS, DNSQR
 from scapy.layers.inet import IP, UDP
 from scapy.layers.llmnr import LLMNRQuery, LLMNRResponse
 from scapy.layers.netbios import NBNSQueryRequest, NBNSQueryResponse, NBNSHeader
 from time import sleep
-from optparse import OptionParser
-from .teams import send_teams_message
-import json
+from utils.teams import send_teams_message
 
 respotter_ascii_logo = r"""
     ____                        __  __           
