@@ -8,6 +8,13 @@
 This application uses LLMNR, mDNS, and NBNS protols to search for a bogus hostname that does not exist (default: Loremipsumdolorsitamet). Responder "responds" to any DNS query, correct or incorrect. If the requests get a response back, then it means that Responder is likely running on your network. 
 
 ## Installation
+### Docker
+```bash
+docker run --rm -d --net=host --name=respotter ghcr.io/lawndoc/respotter:latest
+```
+*Note: `--net=host` is required due to privileged socket usage when crafting request packets*
+
+### Running locally
 1. Clone the repo:
 ```bash
 git clone https://github.com/lawndoc/Respotter
@@ -25,14 +32,6 @@ vim respotter.conf
 python3 -m venv venv
 ./venv/bin/pip install -r requirements.txt
 sudo ./venv/bin/python ./respotter.py
-```
-
-OR
-
-3. Build and run the Docker container:
-```bash
-docker build -t respotter .
-docker run --rm -d --net=host --name=respotter respotter
 ```
 
 ## Output
