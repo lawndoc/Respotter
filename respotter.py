@@ -2,6 +2,7 @@
 
 import argparse
 from configparser import ConfigParser
+from ipaddress import ip_network
 from scapy.all import *
 from scapy.layers.dns import DNS, DNSQR
 from scapy.layers.inet import IP, UDP
@@ -38,9 +39,16 @@ class Respotter:
         self.is_daemon = False
         self.timeout = timeout
         self.verbosity = verbosity
-        if not subnet:
+        if subnet:
+            try:
+                network = ip_network(subnet)
+            except:
+                print(f"[!] ERROR: could not parse subnet CIDR. Netbios protocol will be disabled.")
+            self.broadcast_ip = network.broadcast_address
+        else:
             print(f"[!] ERROR: subnet CIDR not configured. Netbios protocol will be disabled.")
             self.excluded_protocols.append("nbns")
+            
         self.webhooks = {}
         for service in ["teams", "slack", "discord"]:
             webhook = eval(f"{service}_webhook")
@@ -95,10 +103,14 @@ class Respotter:
                             self.webhook_alert(answer.rdata)
         
     def send_nbns_request(self):
+        try:
+            self.broadcast_ip
+        except AttributeError:
+            print("[!] ERROR: broadcast IP not set. Skipping Netbios request.")
+            return
         # WORKAROUND: Scapy not matching long req to resp (secdev/scapy PR #4446)
         hostname = self.hostname[:15]
-        # change IP(dst= to your local broadcast IP
-        packet = IP(dst="255.255.255.255")/UDP(sport=137, dport=137)/NBNSHeader(OPCODE=0x0, NM_FLAGS=0x11, QDCOUNT=1)/NBNSQueryRequest(SUFFIX="file server service", QUESTION_NAME=hostname, QUESTION_TYPE="NB")
+        packet = IP(dst=self.broadcast_ip)/UDP(sport=137, dport=137)/NBNSHeader(OPCODE=0x0, NM_FLAGS=0x11, QDCOUNT=1)/NBNSQueryRequest(SUFFIX="file server service", QUESTION_NAME=hostname, QUESTION_TYPE="NB")
         response = sr1(packet, timeout=self.timeout, verbose=0)
         if not response:
             if self.verbosity >= 1:
