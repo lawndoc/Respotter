@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 
-import json
-from optparse import OptionParser
+import argparse
+from configparser import ConfigParser
 from scapy.all import *
 from scapy.layers.dns import DNS, DNSQR
 from scapy.layers.inet import IP, UDP
 from scapy.layers.llmnr import LLMNRQuery, LLMNRResponse
 from scapy.layers.netbios import NBNSQueryRequest, NBNSQueryResponse, NBNSHeader
+import sys
 from time import sleep
 from utils.teams import send_teams_message
 
@@ -22,17 +23,32 @@ respotter_ascii_logo = r"""
 class Respotter:
     def __init__(self,
                  delay=30,
+                 excluded_protocols=[],
                  hostname="Loremipsumdolorsitamet",
+                 subnet="",
                  timeout=1,
-                 verbosity=0):
+                 verbosity=0,
+                 discord_webhook="",
+                 slack_webhook="",
+                 teams_webhook="",):
+        conf.checkIPaddr = False  # multicast/broadcast responses won't come from dst IP
         self.delay = delay
+        self.excluded_protocols = excluded_protocols
         self.hostname = hostname
+        self.is_daemon = False
         self.timeout = timeout
         self.verbosity = verbosity
-        conf.checkIPaddr = False  # multicast/broadcast responses won't come from dst IP
-        with open("respotter.conf", "r") as config_file:
-            self.config = json.load(config_file)
-        self.is_daemon = False    
+        if not subnet:
+            print(f"[!] ERROR: subnet CIDR not configured. Netbios protocol will be disabled.")
+            self.excluded_protocols.append("nbns")
+        self.webhooks = []
+        for service in ["teams", "slack", "discord"]:
+            webhook = eval(f"{service}_webhook")
+            if webhook:
+                self.webhooks.append(webhook)
+            else:
+                print(f"[-] WARNING: {service} webhook URL not set")
+            
     
     def send_llmnr_request(self):
         # LLMNR uses the multicast IP 224.0.0.252 and UDP port 5355
@@ -96,40 +112,78 @@ class Respotter:
                         send_teams_message(self.config["webhook_url"], answer.rdata)
 
     
-    def daemon(self, excluded_protocols=[""]):
+    def daemon(self):
         self.is_daemon = True
         while True:
-            if "llmnr" not in excluded_protocols:
+            if "llmnr" not in self.excluded_protocols:
                 self.send_llmnr_request()
-            if "mdns" not in excluded_protocols:
+            if "mdns" not in self.excluded_protocols:
                 self.send_mdns_request()
-            if "nbns" not in excluded_protocols:
+            if "nbns" not in self.excluded_protocols:
                 self.send_nbns_request()
             sleep(self.delay)
+            
+def parse_options():
+    # Do argv default this way, as doing it in the functional
+    # declaration sets it at compile time.
+    # if argv is None:
+    #     argv = sys.argv
+
+    # add_help=False so it doesn't parse -h yet
+    config_parser = argparse.ArgumentParser(add_help=False)
+    config_parser.add_argument("-c", "--config", help="Specify config file", metavar="FILE")
+    args, remaining_argv = config_parser.parse_known_args()
+
+    # Precedence: defaults < config file < cli arguments
+    defaults = {
+        "delay": 30,
+        "discord_webhook": "",
+        "exclude": "",
+        "hostname": "Loremipsumdolorsitamet",
+        "slack_webhook": "",
+        "subnet": "",
+        "teams_webhook": "",
+        "timeout": 1,
+        "verbosity": 0,
+    }
+
+    # parse config and override defaults
+    if args.config:
+        config = ConfigParser.SafeConfigParser()
+        config.read([args.config])
+        defaults.update(dict(config.items("Respotter")))
+
+    # parse args and override config
+    parser = argparse.ArgumentParser(parents=[config_parser])
+    parser.set_defaults(**defaults)
+    parser.add_argument("-d", "--delay", help="Delay between scans in seconds")
+    parser.add_argument("-t", "--timeout", help="Timeout for each scan in seconds")
+    parser.add_argument("-s", "--subnet", help="Subnet in CIDR format to calculate broadcast IP for Netbios")
+    parser.add_argument("-v", "--verbosity", help="Verbosity level (0-3)")
+    parser.add_argument("-n", "--hostname", help="Hostname to scan for")
+    parser.add_argument("-x", "--exclude", help="Protocols to exclude from scanning (e.g. 'llmnr,nbns')")
+    args = parser.parse_args(remaining_argv)
+    return args
+    
 
 if __name__ == "__main__":
     print(respotter_ascii_logo)
     print("\nScanning for Responder...\n")
     
-    parser = OptionParser()
-    parser.add_option("-d", "--delay", dest="delay", help="Delay between scans in seconds", default=30)
-    parser.add_option("-t", "--timeout", dest="timeout", help="Timeout for each scan in seconds", default=3)
-    parser.add_option("-v", "--verbosity", dest="verbosity", help="Verbosity level (0-3)", default=0)
-    parser.add_option("-n", "--hostname", dest="hostname", help="Hostname to scan for", default="Loremipsumdolorsitamet")
-    parser.add_option("-x", "--exclude", dest="exclude", help="Protocols to exclude from scanning (e.g. 'llmnr,nbns')", default="")
-    (options, args) = parser.parse_args()
+    options = parse_options()
     
     excluded_protocols = options.exclude.split(",")
     if excluded_protocols == [""]:
-        pass
+        excluded_protocols = []
     for protocol in excluded_protocols:
-        if protocol not in ["llmnr", "mdns", "nbns", ""]:
+        if protocol not in ["llmnr", "mdns", "nbns"]:
             print("[!] Error - exclusions must be a comma separated list of the following options: llmnr,mdns,nbns")
             exit(1)
 
     respotter = Respotter(delay=int(options.delay),
+                          excluded_protocols=excluded_protocols,
                           hostname=options.hostname,
                           timeout=int(options.timeout),
                           verbosity=int(options.verbosity))
     
-    respotter.daemon(excluded_protocols)
+    respotter.daemon()

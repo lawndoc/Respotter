@@ -1,0 +1,13 @@
+{
+    "Respotter": {
+        "delay": 30,
+        "discord_webhook": "",
+        "exclude": "",
+        "hostname": "Loremipsumdolorsitamet",
+        "slack_webhook": "",
+        "subnet": "",
+        "teams_webhook": "",
+        "timeout": 1,
+        "verbosity": 0,
+    }
+}
