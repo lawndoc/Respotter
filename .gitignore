@@ -1,5 +1,5 @@
 # Project specific
-respotter.conf
+config.json
 
 # Redis
 dump.rdp
