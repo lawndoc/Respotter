@@ -125,7 +125,7 @@ class Respotter:
                 for answer in sniffed_packet[NBNSQueryResponse].ADDR_ENTRY:
                     print(f"[!] [NBT-NS] Responder detected at: {answer.NB_ADDRESS} - responded to name '{hostname}'")
                     if self.is_daemon:
-                        self.webhook_alert(answer.rdata)
+                        self.webhook_alert(answer.NB_ADDRESS)
 
     
     def daemon(self):
