@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 import argparse
-from configparser import ConfigParser
 from ipaddress import ip_network
+import json
 from scapy.all import *
 from scapy.layers.dns import DNS, DNSQR
 from scapy.layers.inet import IP, UDP
@@ -165,9 +165,8 @@ def parse_options():
 
     # parse config and override defaults
     if args.config:
-        config = ConfigParser.SafeConfigParser()
-        config.read([args.config])
-        defaults.update(dict(config.items("Respotter")))
+        config = json.load([args.config])
+        defaults.update(config)
 
     # parse args and override config
     parser = argparse.ArgumentParser(parents=[config_parser])
@@ -179,6 +178,8 @@ def parse_options():
     parser.add_argument("-n", "--hostname", help="Hostname to scan for")
     parser.add_argument("-x", "--exclude", help="Protocols to exclude from scanning (e.g. 'llmnr,nbns')")
     args = parser.parse_args(remaining_argv)
+    if int(args.verbosity) > 0:
+        print(f"Final config: {args}\n")
     return args
     
 
