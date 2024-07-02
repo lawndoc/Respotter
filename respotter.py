@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+from datetime import datetime, timedelta
 from ipaddress import ip_network
 import json
 from scapy.all import *
@@ -8,7 +9,6 @@ from scapy.layers.dns import DNS, DNSQR
 from scapy.layers.inet import IP, UDP
 from scapy.layers.llmnr import LLMNRQuery, LLMNRResponse
 from scapy.layers.netbios import NBNSQueryRequest, NBNSQueryResponse, NBNSHeader
-import sys
 from time import sleep
 from utils.teams import send_teams_message
 
@@ -39,6 +39,7 @@ class Respotter:
         self.is_daemon = False
         self.timeout = timeout
         self.verbosity = verbosity
+        self.alerts = {}
         if subnet:
             try:
                 network = ip_network(subnet)
@@ -58,8 +59,12 @@ class Respotter:
                 print(f"[-] WARNING: {service} webhook URL not set")
                 
     def webhook_alert(self, responder_ip):
+        if responder_ip in self.alerts:
+            if self.alerts[responder_ip] > datetime.now() - timedelta(hours=1):
+                return
         if "teams" in self.webhooks:
             send_teams_message(self.webhooks["teams"], responder_ip)
+        self.alerts[responder_ip] = datetime.now()
             
     
     def send_llmnr_request(self):
