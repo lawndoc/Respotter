@@ -41,13 +41,17 @@ class Respotter:
         if not subnet:
             print(f"[!] ERROR: subnet CIDR not configured. Netbios protocol will be disabled.")
             self.excluded_protocols.append("nbns")
-        self.webhooks = []
+        self.webhooks = {}
         for service in ["teams", "slack", "discord"]:
             webhook = eval(f"{service}_webhook")
             if webhook:
-                self.webhooks.append(webhook)
+                self.webhooks[service] = webhook
             else:
                 print(f"[-] WARNING: {service} webhook URL not set")
+                
+    def webhook_alert(self, responder_ip):
+        if "teams" in self.webhooks:
+            send_teams_message(self.webhooks["teams"], responder_ip)
             
     
     def send_llmnr_request(self):
@@ -68,7 +72,7 @@ class Respotter:
                     if answer.type == 1:  # Type 1 is A record, which contains the IP address
                         print(f"[!] [LLMNR] Responder detected at: {answer.rdata} - responded to name '{self.hostname}'")
                         if self.is_daemon:
-                            send_teams_message(self.config["webhook_url"], answer.rdata)
+                            self.webhook_alert(answer.rdata)
         
     def send_mdns_request(self):
         # mDNS uses the multicast IP 224.0.0.251 and UDP port 5353
@@ -88,7 +92,7 @@ class Respotter:
                     if answer.type == 1:
                         print(f"[!] [MDNS] Responder detected at: {answer.rdata} - responded to name '{self.hostname}'")
                         if self.is_daemon:
-                            send_teams_message(self.config["webhook_url"], answer.rdata)
+                            self.webhook_alert(answer.rdata)
         
     def send_nbns_request(self):
         # WORKAROUND: Scapy not matching long req to resp (secdev/scapy PR #4446)
@@ -109,7 +113,7 @@ class Respotter:
                 for answer in sniffed_packet[NBNSQueryResponse].ADDR_ENTRY:
                     print(f"[!] [NBT-NS] Responder detected at: {answer.NB_ADDRESS} - responded to name '{hostname}'")
                     if self.is_daemon:
-                        send_teams_message(self.config["webhook_url"], answer.rdata)
+                        self.webhook_alert(answer.rdata)
 
     
     def daemon(self):
