@@ -199,7 +199,11 @@ if __name__ == "__main__":
     respotter = Respotter(delay=int(options.delay),
                           excluded_protocols=excluded_protocols,
                           hostname=options.hostname,
+                          subnet=options.subnet,
                           timeout=int(options.timeout),
-                          verbosity=int(options.verbosity))
+                          verbosity=int(options.verbosity),
+                          discord_webhook=options.discord_webhook,
+                          slack_webhook=options.slack_webhook,
+                          teams_webhook=options.teams_webhook,)
     
     respotter.daemon()
