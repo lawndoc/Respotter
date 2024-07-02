@@ -44,7 +44,7 @@ class Respotter:
                 network = ip_network(subnet)
             except:
                 print(f"[!] ERROR: could not parse subnet CIDR. Netbios protocol will be disabled.")
-            self.broadcast_ip = network.broadcast_address
+            self.broadcast_ip = str(network.broadcast_address)
         else:
             print(f"[!] ERROR: subnet CIDR not configured. Netbios protocol will be disabled.")
             self.excluded_protocols.append("nbns")
@@ -165,7 +165,8 @@ def parse_options():
 
     # parse config and override defaults
     if args.config:
-        config = json.load([args.config])
+        with open(args.config, "r") as config_file:
+            config = json.load(config_file)
         defaults.update(config)
 
     # parse args and override config
