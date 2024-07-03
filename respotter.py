@@ -12,6 +12,7 @@ from scapy.layers.netbios import NBNSQueryRequest, NBNSQueryResponse, NBNSHeader
 from time import sleep
 from utils.teams import send_teams_message
 
+
 respotter_ascii_logo = r"""
     ____                        __  __           
    / __ \___  _________  ____  / /_/ /____  _____
