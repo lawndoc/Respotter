@@ -42,7 +42,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
     
       - name: Update release
-        if: github.event_name != 'pull_requst'
+        if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
         uses: ncipollo/release-action@v1
         with:
           allowUpdates: true
