@@ -4,6 +4,10 @@
 
 This application detects active instances of [Responder](https://github.com/lgandx/Responder) by taking advantage of the fact that Responder will respond to any DNS query. Respotter uses LLMNR, mDNS, and NBNS protols to search for a bogus hostname that does not exist (default: Loremipsumdolorsitamet). If any of the requests get a response back, then it means that Responder is likely running on your network.
 
+Output when Responder is found:
+
+`[!] [<PROTOCOL>] Responder detected at: X.X.X.X - responded to name 'Loremipsumdolorsitamet'`
+
 Respotter can send webhooks to Slack, Teams, or Discord. It also supports sending events to a syslog server to be ingested by a SIEM.
 
 ## Quick start
@@ -56,12 +60,6 @@ sudo ./venv/bin/python ./respotter.py -c config.json
 mkdir config && mv config.json config/
 docker run --rm -d --net=host -v config:/config --name=respotter ghcr.io/lawndoc/respotter:latest -c config/config.json
 ```
-
-## Output
-
-When Responder is found on your network:
-
-`[!] [<PROTOCOL>] Responder detected at: X.X.X.X - responded to name 'Loremipsumdolorsitamet'`
 
 ## License
 
