@@ -36,9 +36,8 @@ def send_teams_message(webhook_url, responder_ip):
         ]
     }
     response = requests.post(webhook_url, json=json_data, headers=headers)
-    print(response.status_code)
-    if response.status_code != 200:
-        raise TeamsException(response.reason)
+    if response.status_code != 202:
+        print(f"[!] ERROR: failed to send teams webhook - {response.status_code} {response.reason}")
  
 if __name__ == "__main__":
     with open("respotter.conf", "r") as config_file:
