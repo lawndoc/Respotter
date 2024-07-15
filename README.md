@@ -6,13 +6,7 @@ This application detects active instances of [Responder](https://github.com/lgan
 
 Respotter can send webhooks to Slack, Teams, or Discord. It also supports sending events to a syslog server to be ingested by a SIEM.
 
-## Demo
-
-![demo gif](./assets/respotter_demo.gif)
-
 ## Quick start
-
-### Docker
 
 ```bash
 docker run --rm -d --net=host --name=respotter ghcr.io/lawndoc/respotter:latest
@@ -22,7 +16,15 @@ docker run --rm -d --net=host --name=respotter ghcr.io/lawndoc/respotter:latest
 
 To configure container deployments, please refer to [the wiki](https://github.com/lawndoc/Respotter/wiki)
 
-### Running locally
+## Demo
+
+![demo gif](./assets/respotter_demo.gif)
+
+## Additional configuration
+
+You can configure Respotter with a configuration file or command line arguments.
+
+Precedence: defaults < config file < cli arguments
 
 1. Clone the repo:
 
@@ -34,8 +36,8 @@ cd Respotter
 2. Create your config file:
 
 ```bash
-cp respotter.conf.template respotter.conf
-vim respotter.conf
+cp config.json.template config.json
+vim config.json
 ```
 
 3. Setup a venv and run the script:
@@ -43,7 +45,16 @@ vim respotter.conf
 ```bash
 python3 -m venv venv
 ./venv/bin/pip install -r requirements.txt
-sudo ./venv/bin/python ./respotter.py -c respotter.conf
+sudo ./venv/bin/python ./respotter.py -c config.json
+```
+
+*or*
+
+3. Mount the config and run with docker:
+
+```bash
+mkdir config && mv config.json config/
+docker run --rm -d --net=host -v config:/config --name=respotter ghcr.io/lawndoc/respotter:latest -c config/config.json
 ```
 
 ## Output
