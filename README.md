@@ -1,59 +1,75 @@
-![respotterLogo](./assets/respotter_logo.png)
+# ![Respotter](./assets/respotter_logo.png)
 
-# Respotter is a reliable Responder HoneyPot!
+## The Responder Honeypot
 
-*status*: Respotter is currently undergoing a rewrite in Python. Basic functionality works, but new features are being added rapidly. Major changes may happen at any time.
+This application detects active instances of [Responder](https://github.com/lgandx/Responder) by taking advantage of the fact that __Responder will respond to any DNS query__. Respotter uses LLMNR, mDNS, and NBNS protols to search for a bogus hostname that does not exist (default: Loremipsumdolorsitamet). If any of the requests get a response back, then it means that Responder is likely running on your network.
 
-## How it works
-This application uses LLMNR, mDNS, and NBNS protols to search for a bogus hostname that does not exist (default: Loremipsumdolorsitamet). Responder "responds" to any DNS query, correct or incorrect. If the requests get a response back, then it means that Responder is likely running on your network. 
+Output when Responder is found:
 
-## Installation
-### Docker
+`[!] [<PROTOCOL>] Responder detected at: X.X.X.X - responded to name 'Loremipsumdolorsitamet'`
+
+Respotter can send webhooks to Slack, Teams, or Discord. It also supports sending events to a syslog server to be ingested by a SIEM.
+
+## Quick start
+
 ```bash
-docker run --rm -d --net=host --name=respotter ghcr.io/lawndoc/respotter:latest
+docker run --rm --net=host ghcr.io/lawndoc/respotter
 ```
+
 *Note: `--net=host` is required due to privileged socket usage when crafting request packets*
 
-### Running locally
+For additional container deployment documentation, please refer to [the wiki](https://github.com/lawndoc/Respotter/wiki)
+
+## Demo
+
+![demo gif](./assets/respotter_demo.gif)
+
+## Additional configuration
+
+You can configure Respotter with a configuration file or command line arguments.
+
+Precedence: defaults < config file < cli arguments
+
 1. Clone the repo:
+
 ```bash
 git clone https://github.com/lawndoc/Respotter
 cd Respotter
 ```
 
 2. Create your config file:
+
 ```bash
-cp respotter.conf.template respotter.conf
-vim respotter.conf
+cp config.json.template config.json
+vim config.json
 ```
 
 3. Setup a venv and run the script:
+
 ```bash
 python3 -m venv venv
 ./venv/bin/pip install -r requirements.txt
-sudo ./venv/bin/python ./respotter.py
+sudo ./venv/bin/python ./respotter.py -c config.json
 ```
 
-## Output
-When Responder is found on your network:
+*or*
 
-`[!] [<PROTOCOL>] Responder detected at: X.X.X.X - responded to name 'Loremipsumdolorsitamet'`
+3. Mount the config and run with docker:
 
-## Demo
-
-![demo gif](./assets/respotter_demo.gif)
-
-https://www.youtube.com/watch?v=vcPbdAVR560&ab_channel=BadenErb
-
+```bash
+mkdir config && mv config.json config/
+docker run --rm -d --net=host -v config:/config --name=respotter ghcr.io/lawndoc/respotter:latest -c config/config.json
+```
 
 ## License
 
-[MIT](https://choosealicense.com/licenses/mit/) 
+[MIT](https://choosealicense.com/licenses/mit/)
 
 ## Contributors
 
 This project was originally created by [Baden Erb](https://badenerb.com) ([@badenerb](https://github.com/badenerb))
 
 Current maintainers:
+
 * [C.J. May](https://cjmay.info) ([@lawndoc](https://github.com/lawndoc))
 * [Matt Perry]() ([@xmjp](https://github.com/xmjp))
