@@ -2,7 +2,7 @@
 
 ## The Responder Honeypot
 
-This application detects active instances of [Responder](https://github.com/lgandx/Responder) by taking advantage of the fact that Responder will respond to any DNS query. Respotter uses LLMNR, mDNS, and NBNS protols to search for a bogus hostname that does not exist (default: Loremipsumdolorsitamet). If any of the requests get a response back, then it means that Responder is likely running on your network.
+This application detects active instances of [Responder](https://github.com/lgandx/Responder) by taking advantage of the fact that __Responder will respond to any DNS query__. Respotter uses LLMNR, mDNS, and NBNS protols to search for a bogus hostname that does not exist (default: Loremipsumdolorsitamet). If any of the requests get a response back, then it means that Responder is likely running on your network.
 
 Output when Responder is found:
 
