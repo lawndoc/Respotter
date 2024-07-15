@@ -12,11 +12,28 @@ def send_teams_message(webhook_url, responder_ip):
                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Microsoft Windows 10.0.15063; en-US) PowerShell/6.0.0',
                }
     json_data = {
-        "@context": "http://schema.org/extensions",
-        "@type": "MessageCard",
-        "themeColor": "0072C6",
-        "title": "Respotter Alert!",
-        "text": "Respotter Instance found at " + responder_ip + "\n"
+        "type": "message",
+        "attachments": [
+            {
+                "contentType": "application/vnd.microsoft.card.adaptive",
+                "contentUrl": None,
+                "content": {
+                    "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                    "type": "AdaptiveCard",
+                    "body": [
+                        {
+                            "type": "Image",
+                            "url": "https://raw.githubusercontent.com/lawndoc/Respotter/main/assets/respotter_logo.png",
+                            "altText": "Respotter Alert",
+                        },
+                        {
+                            "type": "TextBlock",
+                            "text": f"Responder instance found at {responder_ip}\n"
+                        }
+                    ]
+                }
+            }
+        ]
     }
     response = requests.post(webhook_url, json=json_data, headers=headers)
     print(response.status_code)
