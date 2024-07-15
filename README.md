@@ -9,7 +9,7 @@ Respotter can send webhooks to Slack, Teams, or Discord. It also supports sendin
 ## Quick start
 
 ```bash
-docker run --rm -d --net=host --name=respotter ghcr.io/lawndoc/respotter:latest
+docker run --rm --net=host ghcr.io/lawndoc/respotter
 ```
 
 *Note: `--net=host` is required due to privileged socket usage when crafting request packets*
