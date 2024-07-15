@@ -36,8 +36,7 @@ def send_teams_message(webhook_url, responder_ip):
         ]
     }
     response = requests.post(webhook_url, json=json_data, headers=headers)
-    print(response.status_code)
-    if response.status_code != 200:
+    if response.status_code != 202:
         raise TeamsException(response.reason)
  
 if __name__ == "__main__":
