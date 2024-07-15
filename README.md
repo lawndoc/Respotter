@@ -1,10 +1,14 @@
 # ![Respotter](./assets/respotter_logo.png)
 
-## Responder Honeypot
+## The Responder Honeypot
 
-This application detects [Responder](https://github.com/lgandx/Responder) by taking advantage of the fact that Responder will respond to any DNS query. Respotter uses LLMNR, mDNS, and NBNS protols to search for a bogus hostname that does not exist (default: Loremipsumdolorsitamet). If any of the requests get a response back, then it means that Responder is likely running on your network.
+This application detects active instances of [Responder](https://github.com/lgandx/Responder) by taking advantage of the fact that Responder will respond to any DNS query. Respotter uses LLMNR, mDNS, and NBNS protols to search for a bogus hostname that does not exist (default: Loremipsumdolorsitamet). If any of the requests get a response back, then it means that Responder is likely running on your network.
 
 Respotter can send webhooks to Slack, Teams, or Discord. It also supports sending events to a syslog server to be ingested by a SIEM.
+
+## Demo
+
+![demo gif](./assets/respotter_demo.gif)
 
 ## Quick start
 
@@ -47,12 +51,6 @@ sudo ./venv/bin/python ./respotter.py -c respotter.conf
 When Responder is found on your network:
 
 `[!] [<PROTOCOL>] Responder detected at: X.X.X.X - responded to name 'Loremipsumdolorsitamet'`
-
-## Demo
-
-![demo gif](./assets/respotter_demo.gif)
-
-https://www.youtube.com/watch?v=vcPbdAVR560&ab_channel=BadenErb
 
 ## License
 
