@@ -14,7 +14,7 @@ docker run --rm -d --net=host --name=respotter ghcr.io/lawndoc/respotter:latest
 
 *Note: `--net=host` is required due to privileged socket usage when crafting request packets*
 
-To configure container deployments, please refer to [the wiki](https://github.com/lawndoc/Respotter/wiki)
+For additional container deployment documentation, please refer to [the wiki](https://github.com/lawndoc/Respotter/wiki)
 
 ## Demo
 
