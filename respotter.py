@@ -11,6 +11,7 @@ from scapy.layers.llmnr import LLMNRQuery, LLMNRResponse
 from scapy.layers.netbios import NBNSQueryRequest, NBNSQueryResponse, NBNSHeader
 from time import sleep
 from utils.teams import send_teams_message
+from utils.discord import send_discord_message
 import logging
 import logging.config
 import logging.handlers
@@ -84,6 +85,9 @@ class Respotter:
         if "teams" in self.webhooks:
             send_teams_message(self.webhooks["teams"], responder_ip)
             self.log.info(f"[+] Alert sent to Teams for {responder_ip}")
+        if "discord" in self.webhooks:
+            send_discord_message(self.webhooks["discord"], responder_ip)
+            self.log.info(f"[+] Alert sent to Discord for {responder_ip}")    
         self.alerts[responder_ip] = datetime.now()
             
     
