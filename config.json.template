@@ -7,5 +7,5 @@
     "subnet": "",
     "teams_webhook": "",
     "timeout": 1,
-    "verbosity": 0,
+    "verbosity": 2,
 }

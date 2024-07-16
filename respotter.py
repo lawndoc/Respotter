@@ -31,7 +31,7 @@ class Respotter:
                  hostname="Loremipsumdolorsitamet",
                  subnet="",
                  timeout=1,
-                 verbosity=0,
+                 verbosity=2,
                  discord_webhook="",
                  slack_webhook="",
                  teams_webhook="",):
@@ -47,16 +47,18 @@ class Respotter:
             try:
                 network = ip_network(subnet)
             except:
-                print(f"[!] ERROR: could not parse subnet CIDR. Netbios protocol will be disabled.")
+                self.log.error(f"[!] ERROR: could not parse subnet CIDR. Netbios protocol will be disabled.")
             self.broadcast_ip = str(network.broadcast_address)
         else:
-            print(f"[!] ERROR: subnet CIDR not configured. Netbios protocol will be disabled.")
+            self.log.error(f"[!] ERROR: subnet CIDR not configured. Netbios protocol will be disabled.")
             self.excluded_protocols.append("nbns")
 
         self.log = logging.getLogger('respotter')
-        handler = logging.handlers.SysLogHandler(address = '/var/log') # TO-DO: Set remote address
+        formatter = logging.Formatter('')
+        handler = logging.StreamHandler()
+        handler.setFormatter(formatter)
         self.log.addHandler(handler)
-        logging.basicConfig(level=logging.info, filemode='a', filename='respotter.log', format='%(asctime)s - %(message)s', datefmt='%m/%d/%Y %H:%M:%S')
+        self.log.setLevel((5 - verbosity) * 10)
 
         self.webhooks = {}
         for service in ["teams", "slack", "discord"]:
@@ -64,8 +66,7 @@ class Respotter:
             if webhook:
                 self.webhooks[service] = webhook
             else:
-                print(f"[-] WARNING: {service} webhook URL not set")
-                logging.warning('WARNING: %s webhook URL not set', service)
+                self.log.warning(f"[-] WARNING: {service} webhook URL not set")
                 
     def webhook_alert(self, responder_ip):
         if responder_ip in self.alerts:
@@ -73,6 +74,7 @@ class Respotter:
                 return
         if "teams" in self.webhooks:
             send_teams_message(self.webhooks["teams"], responder_ip)
+            self.log.info(f"[+] Alert sent to Teams for {responder_ip}")
         self.alerts[responder_ip] = datetime.now()
             
     
@@ -81,19 +83,16 @@ class Respotter:
         packet = IP(dst="224.0.0.252")/UDP(dport=5355)/LLMNRQuery(qd=DNSQR(qname=self.hostname))
         response = sr1(packet, timeout=self.timeout, verbose=0)
         if not response:
-            if self.verbosity >= 1:
-                print(f"[*] [LLMNR] No response for '{self.hostname}'")
+            self.log.debug(f"[*] [LLMNR] No response for '{self.hostname}'")
             return
-        if self.verbosity >=1:
-            for p in response:
-                print(p)
+        for p in response:
+            self.log.debug(p)
         # Print all resolved IP addresses
         for sniffed_packet in response:
             if sniffed_packet.haslayer(LLMNRResponse):
                 for answer in sniffed_packet[LLMNRResponse].an:
                     if answer.type == 1:  # Type 1 is A record, which contains the IP address
-                        print(f"[!] [LLMNR] Responder detected at: {answer.rdata} - responded to name '{self.hostname}'")
-                        logging.info('[LLMNR] Responder detected at: %s - responded to name %s', answer.rdata, self.hostname)
+                        self.log.critical(f"[!] [LLMNR] Responder detected at: {answer.rdata} - responded to name '{self.hostname}'")
                         if self.is_daemon:
                             self.webhook_alert(answer.rdata)
         
@@ -102,19 +101,16 @@ class Respotter:
         packet = IP(dst="224.0.0.251")/UDP(dport=5353)/DNS(rd=1, qd=DNSQR(qname=self.hostname))
         response = sr1(packet, timeout=self.timeout, verbose=0)
         if not response:
-            if self.verbosity >= 1:
-                print(f"[*] [MDNS] No response for '{self.hostname}'")
+            self.log.debug(f"[*] [MDNS] No response for '{self.hostname}'")
             return
-        if self.verbosity >=1:
-            for p in response:
-                print(p)
+        for p in response:
+            self.log.debug(p)
         # Print all resolved IP addresses
         for sniffed_packet in response:
             if sniffed_packet is not None and sniffed_packet.haslayer(DNS):
                 for answer in sniffed_packet[DNS].an:
                     if answer.type == 1:
-                        print(f"[!] [MDNS] Responder detected at: {answer.rdata} - responded to name '{self.hostname}'")
-                        logging.info('[MDNS] Responder detected at: %s - responded to name %s', answer.rdata, self.hostname)
+                        self.log.critical(f"[!] [MDNS] Responder detected at: {answer.rdata} - responded to name '{self.hostname}'")
                         if self.is_daemon:
                             self.webhook_alert(answer.rdata)
         
@@ -122,25 +118,22 @@ class Respotter:
         try:
             self.broadcast_ip
         except AttributeError:
-            print("[!] ERROR: broadcast IP not set. Skipping Netbios request.")
+            self.log.error("[!] ERROR: broadcast IP not set. Skipping Netbios request.")
             return
         # WORKAROUND: Scapy not matching long req to resp (secdev/scapy PR #4446)
         hostname = self.hostname[:15]
         packet = IP(dst=self.broadcast_ip)/UDP(sport=137, dport=137)/NBNSHeader(OPCODE=0x0, NM_FLAGS=0x11, QDCOUNT=1)/NBNSQueryRequest(SUFFIX="file server service", QUESTION_NAME=hostname, QUESTION_TYPE="NB")
         response = sr1(packet, timeout=self.timeout, verbose=0)
         if not response:
-            if self.verbosity >= 1:
-                print("[*] [NBT-NS] No response for '{hostname}'")
+            self.log.debug("[*] [NBT-NS] No response for '{hostname}'")
             return
-        if self.verbosity >=1:
-            for p in response:
-                print(p)
+        for p in response:
+            self.log.debug(p)
         # Print all resolved IP addresses
         for sniffed_packet in response:
             if sniffed_packet is not None and sniffed_packet.haslayer(NBNSQueryResponse):
                 for answer in sniffed_packet[NBNSQueryResponse].ADDR_ENTRY:
-                    print(f"[!] [NBT-NS] Responder detected at: {answer.NB_ADDRESS} - responded to name '{hostname}'")
-                    logging.info('[NBT-NS] Responder detected at: %s - responded to name %s', answer.NB_ADDRESS, hostname)
+                    self.log.critical(f"[!] [NBT-NS] Responder detected at: {answer.NB_ADDRESS} - responded to name '{hostname}'")
                     if self.is_daemon:
                         self.webhook_alert(answer.NB_ADDRESS)
 
@@ -177,7 +170,7 @@ def parse_options():
         "subnet": "",
         "teams_webhook": "",
         "timeout": 1,
-        "verbosity": 0,
+        "verbosity": 2,
     }
 
     # parse config and override defaults
@@ -192,11 +185,11 @@ def parse_options():
     parser.add_argument("-d", "--delay", help="Delay between scans in seconds")
     parser.add_argument("-t", "--timeout", help="Timeout for each scan in seconds")
     parser.add_argument("-s", "--subnet", help="Subnet in CIDR format to calculate broadcast IP for Netbios")
-    parser.add_argument("-v", "--verbosity", help="Verbosity level (0-3)")
+    parser.add_argument("-v", "--verbosity", help="Verbosity level (0-5)")
     parser.add_argument("-n", "--hostname", help="Hostname to scan for")
     parser.add_argument("-x", "--exclude", help="Protocols to exclude from scanning (e.g. 'llmnr,nbns')")
     args = parser.parse_args(remaining_argv)
-    if int(args.verbosity) > 0:
+    if int(args.verbosity) > 4:
         print(f"Final config: {args}\n")
     return args
     
