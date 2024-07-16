@@ -12,8 +12,3 @@ def send_discord_message(webhook_url, responder_ip):
         print("Message sent successfully")
     else:
         print("Failed to send message.")
-
-if __name__ == "__main__":
-    with open("respotter.conf", "r") as config_file:
-        conf = json.load(config_file)
-    send_discord_message(conf["webhook_url"], "this is a test")
