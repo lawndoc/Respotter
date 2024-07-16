@@ -7,9 +7,7 @@ def send_discord_message(webhook_url, responder_ip):
     embed.set_author(name='Respotter')
     embed.set_thumbnail(url='https://raw.githubusercontent.com/lawndoc/Respotter/main/assets/respotter_logo.png')
     webhook.add_embed(embed)
-    response = webhook.execute()
-    if response.status_code != 204:
-        print(f"[!] ERROR: failed to send discord webhook - {response.status_code} {response.reason}")
+    webhook.execute()
 
 if __name__ == "__main__":
     with open("respotter.conf", "r") as config_file:
