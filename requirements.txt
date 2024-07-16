@@ -1,2 +1,3 @@
 scapy @ https://github.com/secdev/scapy/archive/refs/heads/master.zip
 requests==2.32.2
+discord-webhook
