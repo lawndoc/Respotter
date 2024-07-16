@@ -37,6 +37,20 @@ class Respotter:
                  teams_webhook="",
                  syslog_address="",
                  ):
+        
+        self.log = logging.getLogger('respotter')
+        formatter = logging.Formatter('')
+        handler = logging.StreamHandler()
+        handler.setFormatter(formatter)
+        self.log.addHandler(handler)
+        self.log.setLevel((5 - verbosity) * 10)
+
+        if syslog_address :
+            handler = logging.handlers.SysLogHandler(address=(syslog_address, 514))
+            formatter = logging.Formatter('Respotter {processName}[{process}]: {message}', style='{')
+            handler.setFormatter(formatter)
+            self.log.addHandler(handler)
+
         conf.checkIPaddr = False  # multicast/broadcast responses won't come from dst IP
         self.delay = delay
         self.excluded_protocols = excluded_protocols
@@ -54,20 +68,6 @@ class Respotter:
         else:
             self.log.error(f"[!] ERROR: subnet CIDR not configured. Netbios protocol will be disabled.")
             self.excluded_protocols.append("nbns")
-
-        self.log = logging.getLogger('respotter')
-        formatter = logging.Formatter('')
-        handler = logging.StreamHandler()
-        handler.setFormatter(formatter)
-        self.log.addHandler(handler)
-        self.log.setLevel((5 - verbosity) * 10)
-
-
-        if syslog_address :
-            handler = logging.handlers.SysLogHandler(address=syslog_address)
-            formatter = logging.Formatter('Respotter %(processName)s[(process)d]: %(message)')
-            handler.setFormatter(formatter)
-            self.log.addHandler(handler)
 
         self.webhooks = {}
         for service in ["teams", "slack", "discord"]:
