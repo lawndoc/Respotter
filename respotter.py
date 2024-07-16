@@ -11,6 +11,9 @@ from scapy.layers.llmnr import LLMNRQuery, LLMNRResponse
 from scapy.layers.netbios import NBNSQueryRequest, NBNSQueryResponse, NBNSHeader
 from time import sleep
 from utils.teams import send_teams_message
+import logging
+import logging.config
+import logging.handlers
 
 respotter_ascii_logo = r"""
     ____                        __  __           
@@ -49,7 +52,12 @@ class Respotter:
         else:
             print(f"[!] ERROR: subnet CIDR not configured. Netbios protocol will be disabled.")
             self.excluded_protocols.append("nbns")
-            
+
+        self.log = logging.getLogger('respotter')
+        handler = logging.handlers.SysLogHandler(address = '/var/log') # TO-DO: Set remote address
+        self.log.addHandler(handler)
+        logging.basicConfig(level=logging.info, filemode='a', filename='respotter.log', format='%(asctime)s - %(message)s', datefmt='%m/%d/%Y %H:%M:%S')
+
         self.webhooks = {}
         for service in ["teams", "slack", "discord"]:
             webhook = eval(f"{service}_webhook")
@@ -57,6 +65,7 @@ class Respotter:
                 self.webhooks[service] = webhook
             else:
                 print(f"[-] WARNING: {service} webhook URL not set")
+                logging.warning('WARNING: %s webhook URL not set', service)
                 
     def webhook_alert(self, responder_ip):
         if responder_ip in self.alerts:
@@ -84,6 +93,7 @@ class Respotter:
                 for answer in sniffed_packet[LLMNRResponse].an:
                     if answer.type == 1:  # Type 1 is A record, which contains the IP address
                         print(f"[!] [LLMNR] Responder detected at: {answer.rdata} - responded to name '{self.hostname}'")
+                        logging.info('[LLMNR] Responder detected at: %s - responded to name %s', answer.rdata, self.hostname)
                         if self.is_daemon:
                             self.webhook_alert(answer.rdata)
         
@@ -104,6 +114,7 @@ class Respotter:
                 for answer in sniffed_packet[DNS].an:
                     if answer.type == 1:
                         print(f"[!] [MDNS] Responder detected at: {answer.rdata} - responded to name '{self.hostname}'")
+                        logging.info('[MDNS] Responder detected at: %s - responded to name %s', answer.rdata, self.hostname)
                         if self.is_daemon:
                             self.webhook_alert(answer.rdata)
         
@@ -129,6 +140,7 @@ class Respotter:
             if sniffed_packet is not None and sniffed_packet.haslayer(NBNSQueryResponse):
                 for answer in sniffed_packet[NBNSQueryResponse].ADDR_ENTRY:
                     print(f"[!] [NBT-NS] Responder detected at: {answer.NB_ADDRESS} - responded to name '{hostname}'")
+                    logging.info('[NBT-NS] Responder detected at: %s - responded to name %s', answer.NB_ADDRESS, hostname)
                     if self.is_daemon:
                         self.webhook_alert(answer.NB_ADDRESS)
 
