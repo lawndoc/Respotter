@@ -8,4 +8,5 @@
     "teams_webhook": "",
     "timeout": 1,
     "verbosity": 2,
+    "syslog_address": "",
 }
