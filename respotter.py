@@ -34,7 +34,9 @@ class Respotter:
                  verbosity=2,
                  discord_webhook="",
                  slack_webhook="",
-                 teams_webhook="",):
+                 teams_webhook="",
+                 syslog_address="",
+                 ):
         conf.checkIPaddr = False  # multicast/broadcast responses won't come from dst IP
         self.delay = delay
         self.excluded_protocols = excluded_protocols
@@ -59,6 +61,13 @@ class Respotter:
         handler.setFormatter(formatter)
         self.log.addHandler(handler)
         self.log.setLevel((5 - verbosity) * 10)
+
+
+        if syslog_address :
+            handler = logging.handlers.SysLogHandler(address=syslog_address)
+            formatter = logging.Formatter('Respotter %(processName)s[(process)d]: %(message)')
+            handler.setFormatter(formatter)
+            self.log.addHandler(handler)
 
         self.webhooks = {}
         for service in ["teams", "slack", "discord"]:
@@ -168,6 +177,7 @@ def parse_options():
         "hostname": "Loremipsumdolorsitamet",
         "slack_webhook": "",
         "subnet": "",
+        "syslog_address": "",
         "teams_webhook": "",
         "timeout": 1,
         "verbosity": 2,
@@ -188,6 +198,7 @@ def parse_options():
     parser.add_argument("-v", "--verbosity", help="Verbosity level (0-5)")
     parser.add_argument("-n", "--hostname", help="Hostname to scan for")
     parser.add_argument("-x", "--exclude", help="Protocols to exclude from scanning (e.g. 'llmnr,nbns')")
+    parser.add_argument("-l", "--syslog-address", help="Syslog server address")
     args = parser.parse_args(remaining_argv)
     if int(args.verbosity) > 4:
         print(f"Final config: {args}\n")
@@ -216,6 +227,8 @@ if __name__ == "__main__":
                           verbosity=int(options.verbosity),
                           discord_webhook=options.discord_webhook,
                           slack_webhook=options.slack_webhook,
-                          teams_webhook=options.teams_webhook,)
+                          teams_webhook=options.teams_webhook,
+                          syslog_address=options.syslog_address,
+                          )
     
     respotter.daemon()
