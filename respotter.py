@@ -330,6 +330,7 @@ def parse_options():
         "subnet": "",
         "syslog_address": "",
         "teams_webhook": "",
+        "test_webhooks": False,
         "timeout": 1,
         "verbosity": 2,
     }
