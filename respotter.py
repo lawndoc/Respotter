@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from ipaddress import ip_network
 import json
 from multiprocessing import Process, Lock
+from pathlib import Path
 from scapy.all import *
 from scapy.layers.dns import DNS, DNSQR
 from scapy.layers.inet import IP, UDP
@@ -71,6 +72,7 @@ class Respotter:
         except FileNotFoundError:
             self.responder_alerts = {}
             self.vulnerable_alerts = {}
+            Path("state").mkdir(parents=True, exist_ok=True)
             with open("state/state.json", "w") as state_file:
                 json.dump({"responder_alerts": {}, "vulnerable_alerts": {}}, state_file)
         # get broadcast IP for Netbios
