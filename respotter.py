@@ -92,7 +92,7 @@ class Respotter:
         
     def webhook_sniffer_alert(self, protocol, requester_ip, requested_hostname):
         if requester_ip in self.vulnerable_alerts:
-            if self.responder_alerts[requester_ip] > datetime.now() - timedelta(days=1):
+            if self.vulnerable_alerts[requester_ip] > datetime.now() - timedelta(days=1):
                 return
         title = f"{protocol.upper()} query detected"
         details = f"{protocol.upper()} query for '{requested_hostname}' from {requester_ip} - potentially vulnerable to Responder"
