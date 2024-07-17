@@ -120,7 +120,7 @@ class Respotter:
         if responder_ip in self.responder_alerts:
             if self.responder_alerts[responder_ip] > datetime.now() - timedelta(hours=1):
                 return
-        title = "Responder instance found"
+        title = "Responder detected!"
         details = f"Responder instance found at {responder_ip}"
         for service in ["teams", "discord", "slack"]:
             if service in self.webhooks:
@@ -145,7 +145,7 @@ class Respotter:
             if protocol in self.vulnerable_alerts[requester_ip]:
                 if self.vulnerable_alerts[requester_ip][protocol] > datetime.now() - timedelta(days=1):
                     return
-        title = f"{protocol.upper()} query detected"
+        title = f"Vulnerable host detected!"
         details = f"{protocol.upper()} query for '{requested_hostname}' from {requester_ip} - potentially vulnerable to Responder"
         for service in ["teams", "discord", "slack"]:
             if service in self.webhooks:
