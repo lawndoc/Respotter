@@ -1,5 +1,5 @@
 from discord_webhook import DiscordWebhook, DiscordEmbed
-from errors import WebhookException
+from utils.errors import WebhookException
 
 def send_discord_message(webhook_url, title, details):
     webhook = DiscordWebhook(url=webhook_url, rate_limit_retry=True)

@@ -1,4 +1,4 @@
-from errors import WebhookException
+from utils.errors import WebhookException
 from slack_sdk import WebhookClient
 from slack_sdk.errors import SlackApiError
 import time

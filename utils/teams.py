@@ -1,4 +1,4 @@
-from errors import WebhookException
+from utils.errors import WebhookException
 import requests
 
 
