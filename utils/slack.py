@@ -3,7 +3,7 @@ from slack_sdk.errors import SlackApiError
 import time
 
 def send_slack_message(webhook_url, title, details):
-    client = WebClient(webhook_url)
+    client = WebhookClient(webhook_url)
     response = client.send(
         text=f"{title}\n{details}"
     )
