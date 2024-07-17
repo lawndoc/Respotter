@@ -171,11 +171,6 @@ class Respotter:
         pass
             
 def parse_options():
-    # Do argv default this way, as doing it in the functional
-    # declaration sets it at compile time.
-    # if argv is None:
-    #     argv = sys.argv
-
     # add_help=False so it doesn't parse -h yet
     config_parser = argparse.ArgumentParser(add_help=False)
     config_parser.add_argument("-c", "--config", help="Specify config file", metavar="FILE")
@@ -222,7 +217,6 @@ if __name__ == "__main__":
     print("\nScanning for Responder...\n")
     
     options = parse_options()
-    
     excluded_protocols = options.exclude.split(",")
     if excluded_protocols == [""]:
         excluded_protocols = []
