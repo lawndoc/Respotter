@@ -1,9 +1,9 @@
-from slack_sdk import WebClient
+from slack_sdk import WebhookClient
 from slack_sdk.errors import SlackApiError
 import time
 
 def send_slack_message(webhook_url, title, details):
-    client = WebClient(token=webhook_url)
+    client = WebClient(webhook_url)
     response = client.chat_postMessage(
         text=f"{title}\n{details}"
     )
