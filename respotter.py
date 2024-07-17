@@ -117,20 +117,20 @@ class Respotter:
                     self.log.error(f"[!] {service.capitalize()} webhook test failed: {e}")
                 
     def webhook_responder_alert(self, responder_ip):
-        if responder_ip in self.responder_alerts:
-            if self.responder_alerts[responder_ip] > datetime.now() - timedelta(hours=1):
-                return
-        title = "Responder detected!"
-        details = f"Responder instance found at {responder_ip}"
-        for service in ["teams", "discord", "slack"]:
-            if service in self.webhooks:
-                try:
-                    eval(f"send_{service}_message")(self.webhooks[service], title=title, details=details)
-                    self.log.info(f"[+] Alert sent to {service.capitalize()} for {responder_ip}")
-                except WebhookException as e:
-                    self.log.error(f"[!] {service.capitalize()} webhook failed: {e}")
-        self.responder_alerts[responder_ip] = datetime.now()
         with self.state_lock:
+            if responder_ip in self.responder_alerts:
+                if self.responder_alerts[responder_ip] > datetime.now() - timedelta(hours=1):
+                    return
+            title = "Responder detected!"
+            details = f"Responder instance found at {responder_ip}"
+            for service in ["teams", "discord", "slack"]:
+                if service in self.webhooks:
+                    try:
+                        eval(f"send_{service}_message")(self.webhooks[service], title=title, details=details)
+                        self.log.info(f"[+] Alert sent to {service.capitalize()} for {responder_ip}")
+                    except WebhookException as e:
+                        self.log.error(f"[!] {service.capitalize()} webhook failed: {e}")
+            self.responder_alerts[responder_ip] = datetime.now()
             with open("state/state.json", "r+") as state_file:
                 state = json.load(state_file)
                 new_state = deepcopy(self.responder_alerts)
@@ -141,24 +141,24 @@ class Respotter:
                 json.dump(state, state_file)
         
     def webhook_sniffer_alert(self, protocol, requester_ip, requested_hostname):
-        if requester_ip in self.vulnerable_alerts:
-            if protocol in self.vulnerable_alerts[requester_ip]:
-                if self.vulnerable_alerts[requester_ip][protocol] > datetime.now() - timedelta(days=1):
-                    return
-        title = f"Vulnerable host detected!"
-        details = f"{protocol.upper()} query for '{requested_hostname}' from {requester_ip} - potentially vulnerable to Responder"
-        for service in ["teams", "discord", "slack"]:
-            if service in self.webhooks:
-                try:
-                    eval(f"send_{service}_message")(self.webhooks[service], title=title, details=details)
-                    self.log.info(f"[+] Alert sent to {service.capitalize()} for {requester_ip}")
-                except WebhookException as e:
-                    self.log.error(f"[!] {service.capitalize()} webhook failed: {e}")
-        if requester_ip in self.vulnerable_alerts:
-            self.vulnerable_alerts[requester_ip][protocol] = datetime.now()
-        else:
-            self.vulnerable_alerts[requester_ip] = {protocol: datetime.now()}
         with self.state_lock:
+            if requester_ip in self.vulnerable_alerts:
+                if protocol in self.vulnerable_alerts[requester_ip]:
+                    if self.vulnerable_alerts[requester_ip][protocol] > datetime.now() - timedelta(days=1):
+                        return
+            title = f"Vulnerable host detected!"
+            details = f"{protocol.upper()} query for '{requested_hostname}' from {requester_ip} - potentially vulnerable to Responder"
+            for service in ["teams", "discord", "slack"]:
+                if service in self.webhooks:
+                    try:
+                        eval(f"send_{service}_message")(self.webhooks[service], title=title, details=details)
+                        self.log.info(f"[+] Alert sent to {service.capitalize()} for {requester_ip}")
+                    except WebhookException as e:
+                        self.log.error(f"[!] {service.capitalize()} webhook failed: {e}")
+            if requester_ip in self.vulnerable_alerts:
+                self.vulnerable_alerts[requester_ip][protocol] = datetime.now()
+            else:
+                self.vulnerable_alerts[requester_ip] = {protocol: datetime.now()}
             with open("state/state.json", "r+") as state_file:
                 state = json.load(state_file)
                 new_state = deepcopy(self.vulnerable_alerts)
