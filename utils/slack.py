@@ -6,7 +6,21 @@ def send_slack_message(webhook_url, title, details):
     client = WebhookClient(webhook_url)
     try:
         response = client.send(
-            text=f"{title}\n{details}"
+            text=f"{title}\n{details}",
+            blocks=[
+                {
+                    "type": "image",
+                    "image_url": "https://raw.githubusercontent.com/lawndoc/Respotter/main/assets/respotter_logo.png",
+                    "alt_text": "Respotter"
+                },
+                {  
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"_*{title}*_\n\n{details}",
+                    }
+                }
+            ]
         )
         if response.status_code == 200:
             print("Message sent successfully")
