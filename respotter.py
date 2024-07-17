@@ -13,9 +13,10 @@ from scapy.layers.inet import IP, UDP
 from scapy.layers.llmnr import LLMNRQuery, LLMNRResponse
 from scapy.layers.netbios import NBNSQueryRequest, NBNSQueryResponse, NBNSHeader
 from time import sleep
-from utils.teams import send_teams_message
 from utils.discord import send_discord_message
+from utils.errors import WebhookException
 from utils.slack import send_slack_message
+from utils.teams import send_teams_message
 import logging
 import logging.config
 import logging.handlers
@@ -41,6 +42,7 @@ class Respotter:
                  slack_webhook="",
                  teams_webhook="",
                  syslog_address="",
+                 test_webhooks=False
                 ):
         # initialize logger
         self.log = logging.getLogger('respotter')
@@ -100,24 +102,35 @@ class Respotter:
                 self.webhooks[service] = webhook
             else:
                 self.log.warning(f"[-] WARNING: {service} webhook URL not set")
+        if test_webhooks:
+            self.webhook_test()
+            
+    def webhook_test(self):
+        title = "Test message"
+        details = "Respotter is starting up... This is a test message."
+        for service in ["teams", "discord", "slack"]:
+            if service in self.webhooks:
+                try:
+                    eval(f"send_{service}_message")(self.webhooks[service], title=title, details=details)
+                    self.log.info(f"[+] {service.capitalize()} webhook test successful")
+                except WebhookException as e:
+                    self.log.error(f"[!] {service.capitalize()} webhook test failed: {e}")
                 
     def webhook_responder_alert(self, responder_ip):
-        if responder_ip in self.responder_alerts:
-            if self.responder_alerts[responder_ip] > datetime.now() - timedelta(hours=1):
-                return
-        title = "Responder instance found"
-        details = f"Responder instance found at {responder_ip}"
-        if "teams" in self.webhooks:
-            send_teams_message(self.webhooks["teams"], title=title, details=details)
-            self.log.info(f"[+] Alert sent to Teams for {responder_ip}")
-        if "discord" in self.webhooks:
-            send_discord_message(self.webhooks["discord"], title=title, details=details)
-            self.log.info(f"[+] Alert sent to Discord for {responder_ip}")
-        if "slack" in self.webhooks:
-            send_slack_message(self.webhooks["slack"], title=title, details=details)
-            self.log.info(f"[+] Alert sent to Slack for {responder_ip}")
-        self.responder_alerts[responder_ip] = datetime.now()
         with self.state_lock:
+            if responder_ip in self.responder_alerts:
+                if self.responder_alerts[responder_ip] > datetime.now() - timedelta(hours=1):
+                    return
+            title = "Responder detected!"
+            details = f"Responder instance found at {responder_ip}"
+            for service in ["teams", "discord", "slack"]:
+                if service in self.webhooks:
+                    try:
+                        eval(f"send_{service}_message")(self.webhooks[service], title=title, details=details)
+                        self.log.info(f"[+] Alert sent to {service.capitalize()} for {responder_ip}")
+                    except WebhookException as e:
+                        self.log.error(f"[!] {service.capitalize()} webhook failed: {e}")
+            self.responder_alerts[responder_ip] = datetime.now()
             with open("state/state.json", "r+") as state_file:
                 state = json.load(state_file)
                 new_state = deepcopy(self.responder_alerts)
@@ -128,26 +141,24 @@ class Respotter:
                 json.dump(state, state_file)
         
     def webhook_sniffer_alert(self, protocol, requester_ip, requested_hostname):
-        if requester_ip in self.vulnerable_alerts:
-            if protocol in self.vulnerable_alerts[requester_ip]:
-                if self.vulnerable_alerts[requester_ip][protocol] > datetime.now() - timedelta(days=1):
-                    return
-        title = f"{protocol.upper()} query detected"
-        details = f"{protocol.upper()} query for '{requested_hostname}' from {requester_ip} - potentially vulnerable to Responder"
-        if "teams" in self.webhooks:
-            send_teams_message(self.webhooks["teams"], title=title, details=details)
-            self.log.info(f"[+] Alert sent to Teams for {requester_ip}")
-        if "discord" in self.webhooks:
-            send_discord_message(self.webhooks["discord"], title=title, details=details)
-            self.log.info(f"[+] Alert sent to Discord for {requester_ip}")
-        if "slack" in self.webhooks:
-            send_slack_message(self.webhooks["slack"], title=title, details=details)
-            self.log.info(f"[+] Alert sent to Slack for {requester_ip}")
-        if requester_ip in self.vulnerable_alerts:
-            self.vulnerable_alerts[requester_ip][protocol] = datetime.now()
-        else:
-            self.vulnerable_alerts[requester_ip] = {protocol: datetime.now()}
         with self.state_lock:
+            if requester_ip in self.vulnerable_alerts:
+                if protocol in self.vulnerable_alerts[requester_ip]:
+                    if self.vulnerable_alerts[requester_ip][protocol] > datetime.now() - timedelta(days=1):
+                        return
+            title = f"Vulnerable host detected!"
+            details = f"{protocol.upper()} query for '{requested_hostname}' from {requester_ip} - potentially vulnerable to Responder"
+            for service in ["teams", "discord", "slack"]:
+                if service in self.webhooks:
+                    try:
+                        eval(f"send_{service}_message")(self.webhooks[service], title=title, details=details)
+                        self.log.info(f"[+] Alert sent to {service.capitalize()} for {requester_ip}")
+                    except WebhookException as e:
+                        self.log.error(f"[!] {service.capitalize()} webhook failed: {e}")
+            if requester_ip in self.vulnerable_alerts:
+                self.vulnerable_alerts[requester_ip][protocol] = datetime.now()
+            else:
+                self.vulnerable_alerts[requester_ip] = {protocol: datetime.now()}
             with open("state/state.json", "r+") as state_file:
                 state = json.load(state_file)
                 new_state = deepcopy(self.vulnerable_alerts)
@@ -319,6 +330,7 @@ def parse_options():
         "subnet": "",
         "syslog_address": "",
         "teams_webhook": "",
+        "test_webhooks": False,
         "timeout": 1,
         "verbosity": 2,
     }
@@ -339,6 +351,7 @@ def parse_options():
     parser.add_argument("-n", "--hostname", help="Hostname to scan for")
     parser.add_argument("-x", "--exclude", help="Protocols to exclude from scanning (e.g. 'llmnr,nbns')")
     parser.add_argument("-l", "--syslog-address", help="Syslog server address")
+    parser.add_argument("--test-webhooks", action="store_true", help="Test configured webhooks")
     args = parser.parse_args(remaining_argv)
     if int(args.verbosity) > 4:
         print(f"Final config: {args}\n")
@@ -368,6 +381,7 @@ if __name__ == "__main__":
                           slack_webhook=options.slack_webhook,
                           teams_webhook=options.teams_webhook,
                           syslog_address=options.syslog_address,
+                          test_webhooks=options.test_webhooks
                           )
     
     respotter.daemon()
