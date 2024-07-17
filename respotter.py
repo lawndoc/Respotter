@@ -67,6 +67,11 @@ class Respotter:
                     previous_state = json.load(state_file)
                     self.responder_alerts = previous_state["responder_alerts"]
                     self.vulnerable_alerts = previous_state["vulnerable_alerts"]
+                    for ip in self.responder_alerts:
+                        self.responder_alerts[ip] = datetime.fromisoformat(self.responder_alerts[ip])
+                    for ip in self.vulnerable_alerts:
+                        for protocol in self.vulnerable_alerts[ip]:
+                            self.vulnerable_alerts[ip][protocol] = datetime.fromisoformat(self.vulnerable_alerts[ip][protocol])
                 except json.JSONDecodeError:
                     raise FileNotFoundError
         except FileNotFoundError:
@@ -110,7 +115,10 @@ class Respotter:
         with self.state_lock:
             with open("state/state.json", "r+") as state_file:
                 state = json.load(state_file)
-                state["responder_alerts"] = self.responder_alerts
+                new_state = self.responder_alerts
+                for ip in new_state:
+                    new_state[ip] = new_state[ip].isoformat()
+                state["responder_alerts"] = new_state
                 state_file.seek(0)
                 json.dump(state, state_file)
         
@@ -134,7 +142,11 @@ class Respotter:
         with self.state_lock:
             with open("state/state.json", "r+") as state_file:
                 state = json.load(state_file)
-                state["vulnerable_alerts"] = self.vulnerable_alerts
+                new_state = self.vulnerable_alerts
+                for ip in new_state:
+                    for protocol in new_state[ip]:
+                        new_state[ip][protocol] = new_state[ip][protocol].isoformat()
+                state["vulnerable_alerts"] = new_state
                 state_file.seek(0)
                 json.dump(state, state_file)
     
