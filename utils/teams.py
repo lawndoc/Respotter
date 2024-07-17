@@ -22,6 +22,7 @@ def send_teams_message(webhook_url, title, details):
                         },
                         {
                             "type": "TextBlock",
+                            "wrap": True,
                             "text": details + "\n"
                         }
                     ]
