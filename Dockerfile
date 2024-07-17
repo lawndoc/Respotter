@@ -26,6 +26,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y python3.12 pyth
 RUN mkdir -p /run
 WORKDIR /run
 COPY . .
+COPY config.json.template /config/config.json
 COPY --from=deps /root/venv /root/venv
 
 # prepare runtime environment
@@ -33,4 +34,4 @@ USER root
 ENV VIRTUAL_ENV=/root/venv
 ENV PATH="/root/venv/bin:$PATH"
 
-ENTRYPOINT ["python", "-u", "./respotter.py"]
+ENTRYPOINT ["python", "-u", "./respotter.py", "-c", "/config/config.json", "--state-file", "/state/state.json"]

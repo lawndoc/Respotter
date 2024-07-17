@@ -33,16 +33,17 @@ respotter_ascii_logo = r"""
 class Respotter:
     def __init__(self,
                  delay=30,
+                 discord_webhook="",
                  excluded_protocols=[],
                  hostname="Loremipsumdolorsitamet",
+                 slack_webhook="",
+                 state_file="state/state.json",
                  subnet="",
+                 syslog_address="",
+                 teams_webhook="",
+                 test_webhooks=False,
                  timeout=1,
                  verbosity=2,
-                 discord_webhook="",
-                 slack_webhook="",
-                 teams_webhook="",
-                 syslog_address="",
-                 test_webhooks=False
                 ):
         # initialize logger
         self.log = logging.getLogger('respotter')
@@ -64,9 +65,10 @@ class Respotter:
         self.timeout = timeout
         self.verbosity = verbosity
         # state persistence
+        self.state_file = state_file
         self.state_lock = Lock()
         try:
-            with open("state/state.json", "r+") as state_file:
+            with open(self.state_file, "r+") as state_file:
                 try:
                     previous_state = json.load(state_file)
                     self.responder_alerts = previous_state["responder_alerts"]
@@ -82,7 +84,7 @@ class Respotter:
             self.responder_alerts = {}
             self.vulnerable_alerts = {}
             Path("state").mkdir(parents=True, exist_ok=True)
-            with open("state/state.json", "w") as state_file:
+            with open(self.state_file, "w") as state_file:
                 json.dump({"responder_alerts": {}, "vulnerable_alerts": {}}, state_file)
         # get broadcast IP for Netbios
         if subnet:
@@ -131,7 +133,7 @@ class Respotter:
                     except WebhookException as e:
                         self.log.error(f"[!] {service.capitalize()} webhook failed: {e}")
             self.responder_alerts[responder_ip] = datetime.now()
-            with open("state/state.json", "r+") as state_file:
+            with open(self.state_file, "r+") as state_file:
                 state = json.load(state_file)
                 new_state = deepcopy(self.responder_alerts)
                 for ip in new_state:
@@ -159,7 +161,7 @@ class Respotter:
                 self.vulnerable_alerts[requester_ip][protocol] = datetime.now()
             else:
                 self.vulnerable_alerts[requester_ip] = {protocol: datetime.now()}
-            with open("state/state.json", "r+") as state_file:
+            with open(self.state_file, "r+") as state_file:
                 state = json.load(state_file)
                 new_state = deepcopy(self.vulnerable_alerts)
                 for ip in new_state:
@@ -327,6 +329,7 @@ def parse_options():
         "exclude": "",
         "hostname": "Loremipsumdolorsitamet",
         "slack_webhook": "",
+        "state_file": "state/state.json",
         "subnet": "",
         "syslog_address": "",
         "teams_webhook": "",
@@ -352,6 +355,7 @@ def parse_options():
     parser.add_argument("-x", "--exclude", help="Protocols to exclude from scanning (e.g. 'llmnr,nbns')")
     parser.add_argument("-l", "--syslog-address", help="Syslog server address")
     parser.add_argument("--test-webhooks", action="store_true", help="Test configured webhooks")
+    parser.add_argument("--state-file", help="Path to state file")
     args = parser.parse_args(remaining_argv)
     if int(args.verbosity) > 4:
         print(f"Final config: {args}\n")
@@ -372,16 +376,17 @@ if __name__ == "__main__":
             exit(1)
 
     respotter = Respotter(delay=int(options.delay),
+                          discord_webhook=options.discord_webhook,
                           excluded_protocols=excluded_protocols,
                           hostname=options.hostname,
-                          subnet=options.subnet,
-                          timeout=int(options.timeout),
-                          verbosity=int(options.verbosity),
-                          discord_webhook=options.discord_webhook,
                           slack_webhook=options.slack_webhook,
-                          teams_webhook=options.teams_webhook,
+                          state_file=options.state_file,
+                          subnet=options.subnet,
                           syslog_address=options.syslog_address,
-                          test_webhooks=options.test_webhooks
+                          teams_webhook=options.teams_webhook,
+                          test_webhooks=options.test_webhooks,
+                          timeout=int(options.timeout),
+                          verbosity=int(options.verbosity)
                           )
     
     respotter.daemon()
