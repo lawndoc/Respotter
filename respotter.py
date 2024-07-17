@@ -57,7 +57,8 @@ class Respotter:
         self.is_daemon = False
         self.timeout = timeout
         self.verbosity = verbosity
-        self.alerts = {}
+        self.responder_alerts = {}
+        self.vulnerable_alerts = {}
         if subnet:
             try:
                 network = ip_network(subnet)
@@ -76,8 +77,8 @@ class Respotter:
                 self.log.warning(f"[-] WARNING: {service} webhook URL not set")
                 
     def webhook_responder_alert(self, responder_ip):
-        if responder_ip in self.alerts:
-            if self.alerts[responder_ip] > datetime.now() - timedelta(hours=1):
+        if responder_ip in self.responder_alerts:
+            if self.responder_alerts[responder_ip] > datetime.now() - timedelta(hours=1):
                 return
         title = "Responder instance found"
         details = f"Responder instance found at {responder_ip}"
@@ -86,10 +87,13 @@ class Respotter:
             self.log.info(f"[+] Alert sent to Teams for {responder_ip}")
         if "discord" in self.webhooks:
             send_discord_message(self.webhooks["discord"], title=title, details=details)
-            self.log.info(f"[+] Alert sent to Discord for {responder_ip}")    
-        self.alerts[responder_ip] = datetime.now()
+            self.log.info(f"[+] Alert sent to Discord for {responder_ip}")
+        self.responder_alerts[responder_ip] = datetime.now()
         
     def webhook_sniffer_alert(self, protocol, requester_ip, requested_hostname):
+        if requester_ip in self.vulnerable_alerts:
+            if self.responder_alerts[requester_ip] > datetime.now() - timedelta(days=1):
+                return
         title = f"{protocol.upper()} query detected"
         details = f"{protocol.upper()} query for '{requested_hostname}' from {requester_ip} - potentially vulnerable to Responder"
         if "teams" in self.webhooks:
@@ -98,6 +102,7 @@ class Respotter:
         if "discord" in self.webhooks:
             send_discord_message(self.webhooks["discord"], title=title, details=details)
             self.log.info(f"[+] Alert sent to Discord for {requester_ip}")
+        self.vulnerable_alerts[requester_ip] = datetime.now()
             
     
     def send_llmnr_request(self):
