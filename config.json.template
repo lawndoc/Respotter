@@ -1,5 +1,4 @@
 {
-    "delay": 30,
     "discord_webhook": "",
     "exclude": "",
     "hostname": "Loremipsumdolorsitamet",
@@ -8,6 +7,5 @@
     "syslog_address": "",
     "teams_webhook": "",
     "test_webhooks": false,
-    "timeout": 1,
     "verbosity": 2,
 }
