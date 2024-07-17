@@ -75,17 +75,29 @@ class Respotter:
             else:
                 self.log.warning(f"[-] WARNING: {service} webhook URL not set")
                 
-    def webhook_alert(self, responder_ip):
+    def webhook_responder_alert(self, responder_ip):
         if responder_ip in self.alerts:
             if self.alerts[responder_ip] > datetime.now() - timedelta(hours=1):
                 return
+        title = "Responder instance found"
+        details = f"Responder instance found at {responder_ip}"
         if "teams" in self.webhooks:
-            send_teams_message(self.webhooks["teams"], responder_ip)
+            send_teams_message(self.webhooks["teams"], title=title, details=details)
             self.log.info(f"[+] Alert sent to Teams for {responder_ip}")
         if "discord" in self.webhooks:
-            send_discord_message(self.webhooks["discord"], responder_ip)
+            send_discord_message(self.webhooks["discord"], title=title, details=details)
             self.log.info(f"[+] Alert sent to Discord for {responder_ip}")    
         self.alerts[responder_ip] = datetime.now()
+        
+    def webhook_sniffer_alert(self, protocol, query_ip, query_name):
+        title = f"{protocol.upper()} query detected"
+        details = f"{protocol.upper()} query for '{query_name}' from {query_ip} -- potentially vulnerable to credential theft via DNS poisoning"
+        if "teams" in self.webhooks:
+            send_teams_message(self.webhooks["teams"], title=title, details=details)
+            self.log.info(f"[+] Alert sent to Teams for {query_ip}")
+        if "discord" in self.webhooks:
+            send_discord_message(self.webhooks["discord"], title=title, details=details)
+            self.log.info(f"[+] Alert sent to Discord for {query_ip}")
             
     
     def send_llmnr_request(self):
@@ -104,7 +116,7 @@ class Respotter:
                     if answer.type == 1:  # Type 1 is A record, which contains the IP address
                         self.log.critical(f"[!] [LLMNR] Responder detected at: {answer.rdata} - responded to name '{self.hostname}'")
                         if self.is_daemon:
-                            self.webhook_alert(answer.rdata)
+                            self.webhook_responder_alert(answer.rdata)
         
     def send_mdns_request(self):
         # mDNS uses the multicast IP 224.0.0.251 and UDP port 5353
@@ -122,7 +134,7 @@ class Respotter:
                     if answer.type == 1:
                         self.log.critical(f"[!] [MDNS] Responder detected at: {answer.rdata} - responded to name '{self.hostname}'")
                         if self.is_daemon:
-                            self.webhook_alert(answer.rdata)
+                            self.webhook_responder_alert(answer.rdata)
         
     def send_nbns_request(self):
         try:
@@ -146,7 +158,7 @@ class Respotter:
                 for answer in sniffed_packet[NBNSQueryResponse].ADDR_ENTRY:
                     self.log.critical(f"[!] [NBT-NS] Responder detected at: {answer.NB_ADDRESS} - responded to name '{hostname}'")
                     if self.is_daemon:
-                        self.webhook_alert(answer.NB_ADDRESS)
+                        self.webhook_responder_alert(answer.NB_ADDRESS)
     
     def daemon(self):
         self.is_daemon = True
@@ -168,7 +180,48 @@ class Respotter:
             sleep(self.delay)
         
     def vuln_sniff(self):
-        pass
+        """
+        This sniffer will NOT poison responses; it will only listen for queries.
+        Poisoning responses isn't opsec-safe for the honeypot, and may cause issues with
+        the client. Use Responder to identify accounts that are vulnerable to poisoning
+        once a vulnerable host has been discovered by Respotter.
+        """
+        llmnr_sniffer = AsyncSniffer(
+            filter="udp port 5355",
+            lfilter=lambda pkt: pkt.haslayer(LLMNRQuery),
+            prn=self.llmnr_found,
+            store=0
+        )
+        mdns_sniffer = AsyncSniffer(
+            filter="udp port 5353",
+            lfilter=lambda pkt: pkt.haslayer(DNS),
+            prn=self.mdns_found,
+            store=0
+        )
+        nbns_sniffer = AsyncSniffer(
+            filter="udp port 137",
+            lfilter=lambda pkt: pkt.haslayer(NBNSQueryRequest),
+            prn=self.nbns_found,
+            store=0
+        )
+        llmnr_sniffer.start()
+        mdns_sniffer.start()
+        nbns_sniffer.start()
+        
+    def llmnr_found(self, packet):
+        self.log.critical(f"[!] [LLMNR] LLMNR query for '{packet[LLMNRQuery].qname}' from {packet[IP].src}")
+        if self.is_daemon:
+            self.webhook_sniffer_alert(packet[IP].src)
+    
+    def mdns_found(self, packet):
+        self.log.critical(f"[!] [MDNS] mDNS query for '{packet[DNSQR].qname}' from {packet[IP].src}")
+        if self.is_daemon:
+            self.webhook_sniffer_alert(packet[IP].src)
+    
+    def nbns_found(self, packet):
+        self.log.critical(f"[!] [NBT-NS] NBT-NS query for '{packet[NBNSQueryRequest].QUESTION_NAME}' from {packet[IP].src}")
+        if self.is_daemon:
+            self.webhook_sniffer_alert(packet[IP].src)
             
 def parse_options():
     # add_help=False so it doesn't parse -h yet
