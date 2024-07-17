@@ -115,7 +115,7 @@ class Respotter:
         with self.state_lock:
             with open("state/state.json", "r+") as state_file:
                 state = json.load(state_file)
-                new_state = self.responder_alerts
+                new_state = self.responder_alerts.copy()
                 for ip in new_state:
                     new_state[ip] = new_state[ip].isoformat()
                 state["responder_alerts"] = new_state
@@ -142,7 +142,7 @@ class Respotter:
         with self.state_lock:
             with open("state/state.json", "r+") as state_file:
                 state = json.load(state_file)
-                new_state = self.vulnerable_alerts
+                new_state = self.vulnerable_alerts.copy()
                 for ip in new_state:
                     for protocol in new_state[ip]:
                         new_state[ip][protocol] = new_state[ip][protocol].isoformat()
