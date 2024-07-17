@@ -7,6 +7,7 @@ from ipaddress import ip_network
 import json
 from multiprocessing import Process, Lock
 from pathlib import Path
+import random
 from scapy.all import *
 from scapy.layers.dns import DNS, DNSQR
 from scapy.layers.inet import IP, UDP
@@ -32,7 +33,6 @@ respotter_ascii_logo = r"""
 
 class Respotter:
     def __init__(self,
-                 delay=30,
                  discord_webhook="",
                  excluded_protocols=[],
                  hostname="Loremipsumdolorsitamet",
@@ -42,7 +42,6 @@ class Respotter:
                  syslog_address="",
                  teams_webhook="",
                  test_webhooks=False,
-                 timeout=1,
                  verbosity=2,
                 ):
         # initialize logger
@@ -58,11 +57,9 @@ class Respotter:
             handler.setFormatter(formatter)
             self.log.addHandler(handler)
         # import configuration
-        self.delay = delay
         self.excluded_protocols = excluded_protocols
         self.hostname = hostname
         self.is_daemon = False
-        self.timeout = timeout
         self.verbosity = verbosity
         # state persistence
         self.state_file = state_file
@@ -174,7 +171,7 @@ class Respotter:
     def send_llmnr_request(self):
         # LLMNR uses the multicast IP 224.0.0.252 and UDP port 5355
         packet = IP(dst="224.0.0.252")/UDP(dport=5355)/LLMNRQuery(qd=DNSQR(qname=self.hostname))
-        response = sr1(packet, timeout=self.timeout, verbose=0)
+        response = sr1(packet, timeout=1, verbose=0)
         if not response:
             self.log.debug(f"[*] [LLMNR] No response for '{self.hostname}'")
             return
@@ -192,7 +189,7 @@ class Respotter:
     def send_mdns_request(self):
         # mDNS uses the multicast IP 224.0.0.251 and UDP port 5353
         packet = IP(dst="224.0.0.251")/UDP(dport=5353)/DNS(rd=1, qd=DNSQR(qname=self.hostname))
-        response = sr1(packet, timeout=self.timeout, verbose=0)
+        response = sr1(packet, timeout=1, verbose=0)
         if not response:
             self.log.debug(f"[*] [MDNS] No response for '{self.hostname}'")
             return
@@ -217,7 +214,7 @@ class Respotter:
         hostname = self.hostname[:15]
         # Netbios uses the broadcast IP and UDP port 137
         packet = IP(dst=self.broadcast_ip)/UDP(sport=137, dport=137)/NBNSHeader(OPCODE=0x0, NM_FLAGS=0x11, QDCOUNT=1)/NBNSQueryRequest(SUFFIX="file server service", QUESTION_NAME=hostname, QUESTION_TYPE="NB")
-        response = sr1(packet, timeout=self.timeout, verbose=0)
+        response = sr1(packet, timeout=1, verbose=0)
         if not response:
             self.log.debug("[*] [NBT-NS] No response for '{hostname}'")
             return
@@ -251,7 +248,7 @@ class Respotter:
                 self.send_mdns_request()
             if "nbns" not in self.excluded_protocols:
                 self.send_nbns_request()
-            sleep(self.delay)
+            sleep(random.randrange(30,90))
         
     def vuln_sniff(self):
         """
@@ -324,7 +321,6 @@ def parse_options():
 
     # Precedence: defaults < config file < cli arguments
     defaults = {
-        "delay": 30,
         "discord_webhook": "",
         "exclude": "",
         "hostname": "Loremipsumdolorsitamet",
@@ -334,7 +330,6 @@ def parse_options():
         "syslog_address": "",
         "teams_webhook": "",
         "test_webhooks": False,
-        "timeout": 1,
         "verbosity": 2,
     }
 
@@ -347,8 +342,6 @@ def parse_options():
     # parse args and override config
     parser = argparse.ArgumentParser(parents=[config_parser])
     parser.set_defaults(**defaults)
-    parser.add_argument("-d", "--delay", help="Delay between scans in seconds")
-    parser.add_argument("-t", "--timeout", help="Timeout for each scan in seconds")
     parser.add_argument("-s", "--subnet", help="Subnet in CIDR format to calculate broadcast IP for Netbios")
     parser.add_argument("-v", "--verbosity", help="Verbosity level (0-5)")
     parser.add_argument("-n", "--hostname", help="Hostname to scan for")
@@ -375,8 +368,7 @@ if __name__ == "__main__":
             print("[!] Error - exclusions must be a comma separated list of the following options: llmnr,mdns,nbns")
             exit(1)
 
-    respotter = Respotter(delay=int(options.delay),
-                          discord_webhook=options.discord_webhook,
+    respotter = Respotter(discord_webhook=options.discord_webhook,
                           excluded_protocols=excluded_protocols,
                           hostname=options.hostname,
                           slack_webhook=options.slack_webhook,
@@ -385,7 +377,6 @@ if __name__ == "__main__":
                           syslog_address=options.syslog_address,
                           teams_webhook=options.teams_webhook,
                           test_webhooks=options.test_webhooks,
-                          timeout=int(options.timeout),
                           verbosity=int(options.verbosity)
                           )
     
