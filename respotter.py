@@ -103,7 +103,7 @@ class Respotter:
         if "discord" in self.webhooks:
             send_discord_message(self.webhooks["discord"], title=title, details=details)
             self.log.info(f"[+] Alert sent to Discord for {requester_ip}")
-        if self.vulnerable_alerts[requester_ip]:
+        if requester_ip in self.vulnerable_alerts:
             self.vulnerable_alerts[requester_ip][protocol] = datetime.now()
         else:
             self.vulnerable_alerts[requester_ip] = {protocol: datetime.now()}
