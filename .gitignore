@@ -1,6 +1,7 @@
 # Project specific
 config.json
 config/
+state/
 
 # Redis
 dump.rdp

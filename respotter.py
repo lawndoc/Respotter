@@ -4,7 +4,8 @@ import argparse
 from datetime import datetime, timedelta
 from ipaddress import ip_network
 import json
-from multiprocessing import Process
+from multiprocessing import Process, Lock
+from pathlib import Path
 from scapy.all import *
 from scapy.layers.dns import DNS, DNSQR
 from scapy.layers.inet import IP, UDP
@@ -39,6 +40,7 @@ class Respotter:
                  teams_webhook="",
                  syslog_address="",
                 ):
+        # initialize logger
         self.log = logging.getLogger('respotter')
         formatter = logging.Formatter('')
         handler = logging.StreamHandler()
@@ -50,15 +52,35 @@ class Respotter:
             formatter = logging.Formatter('Respotter {processName}[{process}]: {message}', style='{')
             handler.setFormatter(formatter)
             self.log.addHandler(handler)
-        conf.checkIPaddr = False  # multicast/broadcast responses won't come from dst IP
+        # import configuration
         self.delay = delay
         self.excluded_protocols = excluded_protocols
         self.hostname = hostname
         self.is_daemon = False
         self.timeout = timeout
         self.verbosity = verbosity
-        self.responder_alerts = {}
-        self.vulnerable_alerts = {}
+        # state persistence
+        self.state_lock = Lock()
+        try:
+            with open("state/state.json", "r+") as state_file:
+                try:
+                    previous_state = json.load(state_file)
+                    self.responder_alerts = previous_state["responder_alerts"]
+                    self.vulnerable_alerts = previous_state["vulnerable_alerts"]
+                    for ip in self.responder_alerts:
+                        self.responder_alerts[ip] = datetime.fromisoformat(self.responder_alerts[ip])
+                    for ip in self.vulnerable_alerts:
+                        for protocol in self.vulnerable_alerts[ip]:
+                            self.vulnerable_alerts[ip][protocol] = datetime.fromisoformat(self.vulnerable_alerts[ip][protocol])
+                except json.JSONDecodeError:
+                    raise FileNotFoundError
+        except FileNotFoundError:
+            self.responder_alerts = {}
+            self.vulnerable_alerts = {}
+            Path("state").mkdir(parents=True, exist_ok=True)
+            with open("state/state.json", "w") as state_file:
+                json.dump({"responder_alerts": {}, "vulnerable_alerts": {}}, state_file)
+        # get broadcast IP for Netbios
         if subnet:
             try:
                 network = ip_network(subnet)
@@ -68,6 +90,7 @@ class Respotter:
         elif "nbns" not in self.excluded_protocols:
             self.log.error(f"[!] ERROR: subnet CIDR not configured. Netbios protocol will be disabled.")
             self.excluded_protocols.append("nbns")
+        # setup webhooks
         self.webhooks = {}
         for service in ["teams", "slack", "discord"]:
             webhook = eval(f"{service}_webhook")
@@ -89,6 +112,15 @@ class Respotter:
             send_discord_message(self.webhooks["discord"], title=title, details=details)
             self.log.info(f"[+] Alert sent to Discord for {responder_ip}")
         self.responder_alerts[responder_ip] = datetime.now()
+        with self.state_lock:
+            with open("state/state.json", "r+") as state_file:
+                state = json.load(state_file)
+                new_state = self.responder_alerts.copy()
+                for ip in new_state:
+                    new_state[ip] = new_state[ip].isoformat()
+                state["responder_alerts"] = new_state
+                state_file.seek(0)
+                json.dump(state, state_file)
         
     def webhook_sniffer_alert(self, protocol, requester_ip, requested_hostname):
         if requester_ip in self.vulnerable_alerts:
@@ -107,7 +139,16 @@ class Respotter:
             self.vulnerable_alerts[requester_ip][protocol] = datetime.now()
         else:
             self.vulnerable_alerts[requester_ip] = {protocol: datetime.now()}
-            
+        with self.state_lock:
+            with open("state/state.json", "r+") as state_file:
+                state = json.load(state_file)
+                new_state = self.vulnerable_alerts.copy()
+                for ip in new_state:
+                    for protocol in new_state[ip]:
+                        new_state[ip][protocol] = new_state[ip][protocol].isoformat()
+                state["vulnerable_alerts"] = new_state
+                state_file.seek(0)
+                json.dump(state, state_file)
     
     def send_llmnr_request(self):
         # LLMNR uses the multicast IP 224.0.0.252 and UDP port 5355
@@ -180,6 +221,8 @@ class Respotter:
         
     def responder_scan(self):
         self.log.info("[*] Responder scans started")
+        # Scapy setting -- multicast/broadcast responses won't come from dst IP
+        conf.checkIPaddr = False
         while True:
             if "llmnr" not in self.excluded_protocols:
                 self.send_llmnr_request()
