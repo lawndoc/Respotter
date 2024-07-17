@@ -4,6 +4,7 @@ import argparse
 from datetime import datetime, timedelta
 from ipaddress import ip_network
 import json
+from multiprocessing import Process
 from scapy.all import *
 from scapy.layers.dns import DNS, DNSQR
 from scapy.layers.inet import IP, UDP
@@ -149,6 +150,14 @@ class Respotter:
     
     def daemon(self):
         self.is_daemon = True
+        scanner_process = Process(target=self.responder_scan)
+        scanner_process.start()
+        sniffer_process = Process(target=self.vuln_sniff)
+        sniffer_process.start()
+        scanner_process.join()
+        sniffer_process.join()
+        
+    def responder_scan(self):
         while True:
             if "llmnr" not in self.excluded_protocols:
                 self.send_llmnr_request()
@@ -157,6 +166,9 @@ class Respotter:
             if "nbns" not in self.excluded_protocols:
                 self.send_nbns_request()
             sleep(self.delay)
+        
+    def vuln_sniff(self):
+        pass
             
 def parse_options():
     # Do argv default this way, as doing it in the functional
