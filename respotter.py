@@ -37,21 +37,18 @@ class Respotter:
                  slack_webhook="",
                  teams_webhook="",
                  syslog_address="",
-                 ):
-        
+                ):
         self.log = logging.getLogger('respotter')
         formatter = logging.Formatter('')
         handler = logging.StreamHandler()
         handler.setFormatter(formatter)
         self.log.addHandler(handler)
         self.log.setLevel((5 - verbosity) * 10)
-
-        if syslog_address :
+        if syslog_address:
             handler = logging.handlers.SysLogHandler(address=(syslog_address, 514))
             formatter = logging.Formatter('Respotter {processName}[{process}]: {message}', style='{')
             handler.setFormatter(formatter)
             self.log.addHandler(handler)
-
         conf.checkIPaddr = False  # multicast/broadcast responses won't come from dst IP
         self.delay = delay
         self.excluded_protocols = excluded_protocols
@@ -69,7 +66,6 @@ class Respotter:
         else:
             self.log.error(f"[!] ERROR: subnet CIDR not configured. Netbios protocol will be disabled.")
             self.excluded_protocols.append("nbns")
-
         self.webhooks = {}
         for service in ["teams", "slack", "discord"]:
             webhook = eval(f"{service}_webhook")
@@ -135,6 +131,7 @@ class Respotter:
             return
         # WORKAROUND: Scapy not matching long req to resp (secdev/scapy PR #4446)
         hostname = self.hostname[:15]
+        # Netbios uses the broadcast IP and UDP port 137
         packet = IP(dst=self.broadcast_ip)/UDP(sport=137, dport=137)/NBNSHeader(OPCODE=0x0, NM_FLAGS=0x11, QDCOUNT=1)/NBNSQueryRequest(SUFFIX="file server service", QUESTION_NAME=hostname, QUESTION_TYPE="NB")
         response = sr1(packet, timeout=self.timeout, verbose=0)
         if not response:
@@ -149,7 +146,6 @@ class Respotter:
                     self.log.critical(f"[!] [NBT-NS] Responder detected at: {answer.NB_ADDRESS} - responded to name '{hostname}'")
                     if self.is_daemon:
                         self.webhook_alert(answer.NB_ADDRESS)
-
     
     def daemon(self):
         self.is_daemon = True
