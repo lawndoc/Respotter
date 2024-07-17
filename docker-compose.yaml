@@ -1,0 +1,10 @@
+version: "3.9"
+services:
+  plexms:
+    container_name: respotter
+    image: ghcr.io/lawndoc/respotter:latest
+    network_mode: host
+    restart: always
+    volumes:
+      - ./config:/config
+      - ./state:/state
