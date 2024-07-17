@@ -15,3 +15,5 @@ def send_slack_message(webhook_url, title, details):
         print(f"Rate limited. Retrying in {retry_after} seconds")
         time.sleep(retry_after)
         send_slack_message(webhook_url, title, details)
+    else :
+        print(f"Failed to send message: {e.response.status_code}")
