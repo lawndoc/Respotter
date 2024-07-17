@@ -1,13 +1,7 @@
-import json
 import requests
 
-class TeamsException(Exception):
-    pass
 
-# You will need to edit the teams.conf file with your own webhook URL
-
-# Sending a message to Microsoft Teams:
-def send_teams_message(webhook_url, responder_ip):
+def send_teams_message(webhook_url, title, details):
     headers = {'Content-Type': 'application/json',
                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Microsoft Windows 10.0.15063; en-US) PowerShell/6.0.0',
                }
@@ -28,7 +22,8 @@ def send_teams_message(webhook_url, responder_ip):
                         },
                         {
                             "type": "TextBlock",
-                            "text": f"Responder instance found at {responder_ip}\n"
+                            "wrap": True,
+                            "text": details + "\n"
                         }
                     ]
                 }
