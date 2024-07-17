@@ -7,9 +7,9 @@ def send_slack_message(webhook_url, title, details):
     response = client.send(
         text=f"{title}\n{details}"
     )
-    if response['ok']:
+    if response.status_code == 200:
         print("Message sent successfully")
-    if e.response.status_code == 429:
+    if response.status_code == 429:
         # Slack rate limits to one message per channel per second, with short bursts of >1 allowed
         retry_after = int(e.response.headers['Retry-After'])
         print(f"Rate limited. Retrying in {retry_after} seconds")
