@@ -63,7 +63,7 @@ class Respotter:
             except:
                 self.log.error(f"[!] ERROR: could not parse subnet CIDR. Netbios protocol will be disabled.")
             self.broadcast_ip = str(network.broadcast_address)
-        else:
+        elif "nbns" not in self.excluded_protocols:
             self.log.error(f"[!] ERROR: subnet CIDR not configured. Netbios protocol will be disabled.")
             self.excluded_protocols.append("nbns")
         self.webhooks = {}
