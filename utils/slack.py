@@ -4,7 +4,7 @@ import time
 
 def send_slack_message(webhook_url, title, details):
     client = WebClient(webhook_url)
-    response = client.chat_postMessage(
+    response = client.send(
         text=f"{title}\n{details}"
     )
     if response['ok']:
