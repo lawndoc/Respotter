@@ -15,6 +15,7 @@ from scapy.layers.netbios import NBNSQueryRequest, NBNSQueryResponse, NBNSHeader
 from time import sleep
 from utils.teams import send_teams_message
 from utils.discord import send_discord_message
+from utils.slack import send_slack_message
 import logging
 import logging.config
 import logging.handlers
@@ -112,6 +113,9 @@ class Respotter:
         if "discord" in self.webhooks:
             send_discord_message(self.webhooks["discord"], title=title, details=details)
             self.log.info(f"[+] Alert sent to Discord for {responder_ip}")
+        if "slack" in self.webhooks:
+            send_slack_message(self.webhooks["slack"], title=title, details=details)
+            self.log.info(f"[+] Alert sent to Slack for {responder_ip}")
         self.responder_alerts[responder_ip] = datetime.now()
         with self.state_lock:
             with open("state/state.json", "r+") as state_file:
@@ -136,6 +140,9 @@ class Respotter:
         if "discord" in self.webhooks:
             send_discord_message(self.webhooks["discord"], title=title, details=details)
             self.log.info(f"[+] Alert sent to Discord for {requester_ip}")
+        if "slack" in self.webhooks:
+            send_slack_message(self.webhooks["slack"], title=title, details=details)
+            self.log.info(f"[+] Alert sent to Slack for {requester_ip}")
         if requester_ip in self.vulnerable_alerts:
             self.vulnerable_alerts[requester_ip][protocol] = datetime.now()
         else:

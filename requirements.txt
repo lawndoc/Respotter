@@ -2,3 +2,4 @@ scapy @ https://github.com/secdev/scapy/archive/refs/heads/master.zip
 requests==2.32.2
 discord-webhook
 urllib3>=2.2.2 # not directly required, pinned by Snyk to avoid a vulnerability
+slack_sdk
