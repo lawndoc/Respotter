@@ -92,8 +92,9 @@ class Respotter:
         
     def webhook_sniffer_alert(self, protocol, requester_ip, requested_hostname):
         if requester_ip in self.vulnerable_alerts:
-            if self.vulnerable_alerts[requester_ip] > datetime.now() - timedelta(days=1):
-                return
+            if protocol in self.vulnerable_alerts[requester_ip]:
+                if self.vulnerable_alerts[requester_ip][protocol] > datetime.now() - timedelta(days=1):
+                    return
         title = f"{protocol.upper()} query detected"
         details = f"{protocol.upper()} query for '{requested_hostname}' from {requester_ip} - potentially vulnerable to Responder"
         if "teams" in self.webhooks:
@@ -102,7 +103,10 @@ class Respotter:
         if "discord" in self.webhooks:
             send_discord_message(self.webhooks["discord"], title=title, details=details)
             self.log.info(f"[+] Alert sent to Discord for {requester_ip}")
-        self.vulnerable_alerts[requester_ip] = datetime.now()
+        if self.vulnerable_alerts[requester_ip]:
+            self.vulnerable_alerts[requester_ip][protocol] = datetime.now()
+        else:
+            self.vulnerable_alerts[requester_ip] = {protocol: datetime.now()}
             
     
     def send_llmnr_request(self):
