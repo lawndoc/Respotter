@@ -5,8 +5,9 @@
     "hostname": "Loremipsumdolorsitamet",
     "slack_webhook": "",
     "subnet": "",
+    "syslog_address": "",
     "teams_webhook": "",
+    "test_webhooks": false,
     "timeout": 1,
     "verbosity": 2,
-    "syslog_address": "",
 }

@@ -1,3 +1,4 @@
+from errors import WebhookException
 import requests
 
 
@@ -32,4 +33,4 @@ def send_teams_message(webhook_url, title, details):
     }
     response = requests.post(webhook_url, json=json_data, headers=headers)
     if response.status_code != 202:
-        print(f"[!] ERROR: failed to send teams webhook - {response.status_code} {response.reason}")
+        raise WebhookException(f"Failed to send message to Teams. Status code: {response.status_code}")

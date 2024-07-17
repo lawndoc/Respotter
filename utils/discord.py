@@ -1,4 +1,5 @@
 from discord_webhook import DiscordWebhook, DiscordEmbed
+from errors import WebhookException
 
 def send_discord_message(webhook_url, title, details):
     webhook = DiscordWebhook(url=webhook_url, rate_limit_retry=True)
@@ -8,6 +9,6 @@ def send_discord_message(webhook_url, title, details):
     webhook.add_embed(embed)
     response = webhook.execute()
     if response.status_code == 200:
-        print("Message sent successfully")
+        pass
     else:
-        print("Failed to send message.")
+        raise WebhookException(f"Failed to send message to Discord. Status code: {response.status_code}")
