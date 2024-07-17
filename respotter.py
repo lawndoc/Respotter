@@ -89,15 +89,15 @@ class Respotter:
             self.log.info(f"[+] Alert sent to Discord for {responder_ip}")    
         self.alerts[responder_ip] = datetime.now()
         
-    def webhook_sniffer_alert(self, protocol, query_ip, query_name):
+    def webhook_sniffer_alert(self, protocol, requester_ip, requested_hostname):
         title = f"{protocol.upper()} query detected"
-        details = f"{protocol.upper()} query for '{query_name}' from {query_ip} -- potentially vulnerable to credential theft via DNS poisoning"
+        details = f"{protocol.upper()} query for '{requested_hostname}' from {requester_ip} - potentially vulnerable to Responder"
         if "teams" in self.webhooks:
             send_teams_message(self.webhooks["teams"], title=title, details=details)
-            self.log.info(f"[+] Alert sent to Teams for {query_ip}")
+            self.log.info(f"[+] Alert sent to Teams for {requester_ip}")
         if "discord" in self.webhooks:
             send_discord_message(self.webhooks["discord"], title=title, details=details)
-            self.log.info(f"[+] Alert sent to Discord for {query_ip}")
+            self.log.info(f"[+] Alert sent to Discord for {requester_ip}")
             
     
     def send_llmnr_request(self):
@@ -170,6 +170,7 @@ class Respotter:
         sniffer_process.join()
         
     def responder_scan(self):
+        self.log.info("[*] Responder scans started")
         while True:
             if "llmnr" not in self.excluded_protocols:
                 self.send_llmnr_request()
@@ -188,40 +189,59 @@ class Respotter:
         """
         llmnr_sniffer = AsyncSniffer(
             filter="udp port 5355",
-            lfilter=lambda pkt: pkt.haslayer(LLMNRQuery),
+            lfilter=lambda pkt: pkt.haslayer(LLMNRQuery), # TODO: should this be DNSQR?
+            started_callback=self.sniffer_startup,
             prn=self.llmnr_found,
             store=0
         )
         mdns_sniffer = AsyncSniffer(
             filter="udp port 5353",
-            lfilter=lambda pkt: pkt.haslayer(DNS),
+            lfilter=lambda pkt: pkt.haslayer(DNS), # TODO: should this be DNSQR?
+            started_callback=self.sniffer_startup,
             prn=self.mdns_found,
             store=0
         )
         nbns_sniffer = AsyncSniffer(
             filter="udp port 137",
             lfilter=lambda pkt: pkt.haslayer(NBNSQueryRequest),
+            started_callback=self.sniffer_startup,
             prn=self.nbns_found,
             store=0
         )
         llmnr_sniffer.start()
         mdns_sniffer.start()
         nbns_sniffer.start()
+        while True:
+            sleep(1)
+        
+    def sniffer_startup(self):
+        self.log.info("[*] Sniffer started")
         
     def llmnr_found(self, packet):
-        self.log.critical(f"[!] [LLMNR] LLMNR query for '{packet[LLMNRQuery].qname}' from {packet[IP].src}")
-        if self.is_daemon:
-            self.webhook_sniffer_alert(packet[IP].src)
+        for dns_packet in packet[LLMNRQuery].qd:
+            requested_hostname = dns_packet.qname.decode()
+            if requested_hostname == self.hostname + ".":
+                return
+            self.log.critical(f"[!] [LLMNR] LLMNR query for '{requested_hostname}' from {packet[IP].src} - potentially vulnerable to Responder")
+            if self.is_daemon:
+                self.webhook_sniffer_alert("LLMNR", packet[IP].src, requested_hostname)
     
     def mdns_found(self, packet):
-        self.log.critical(f"[!] [MDNS] mDNS query for '{packet[DNSQR].qname}' from {packet[IP].src}")
-        if self.is_daemon:
-            self.webhook_sniffer_alert(packet[IP].src)
+        for dns_packet in packet[DNS].qd:
+            requested_hostname = dns_packet.qname.decode()
+            if requested_hostname == self.hostname + ".":
+                return
+            self.log.critical(f"[!] [MDNS] mDNS query for '{requested_hostname}' from {packet[IP].src} - potentially vulnerable to Responder")
+            if self.is_daemon:
+                self.webhook_sniffer_alert("mDNS", packet[IP].src, requested_hostname)
     
     def nbns_found(self, packet):
-        self.log.critical(f"[!] [NBT-NS] NBT-NS query for '{packet[NBNSQueryRequest].QUESTION_NAME}' from {packet[IP].src}")
+        requested_hostname = packet[NBNSQueryRequest].QUESTION_NAME.decode()
+        if requested_hostname == self.hostname[:15]:
+            return
+        self.log.critical(f"[!] [NBT-NS] NBT-NS query for '{requested_hostname}' from {packet[IP].src} - potentially vulnerable to Responder")
         if self.is_daemon:
-            self.webhook_sniffer_alert(packet[IP].src)
+            self.webhook_sniffer_alert("Netbios", packet[IP].src, requested_hostname)
             
 def parse_options():
     # add_help=False so it doesn't parse -h yet
