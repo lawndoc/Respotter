@@ -294,8 +294,6 @@ class Respotter:
         for dns_packet in packet[LLMNRQuery].qd:
             requester_ip = packet[IP].src
             requested_hostname = dns_packet.qname.decode()
-            if requested_hostname == self.hostname + ".":
-                return
             self.log.critical(f"[!] [LLMNR] LLMNR query for '{requested_hostname}' from {requester_ip} - potentially vulnerable to Responder")
             if self.is_daemon:
                 self.get_remediation_advice("LLMNR", requester_ip, requested_hostname)
@@ -304,8 +302,6 @@ class Respotter:
         for dns_packet in packet[DNS].qd:
             requester_ip = packet[IP].src
             requested_hostname = dns_packet.qname.decode()
-            if requested_hostname == self.hostname + ".":
-                return
             self.log.critical(f"[!] [MDNS] mDNS query for '{requested_hostname}' from {requester_ip} - potentially vulnerable to Responder")
             if self.is_daemon:
                 self.get_remediation_advice("MDNS", requester_ip, requested_hostname)
@@ -313,8 +309,6 @@ class Respotter:
     def nbns_found(self, packet):
         requester_ip = packet[IP].src
         requested_hostname = packet[NBNSQueryRequest].QUESTION_NAME.decode()
-        if requested_hostname == self.hostname[:15]:
-            return
         self.log.critical(f"[!] [NBT-NS] NBT-NS query for '{requested_hostname}' from {requester_ip} - potentially vulnerable to Responder")
         if self.is_daemon:
             self.get_remediation_advice("NBT-NS", requester_ip, requested_hostname)
