@@ -71,13 +71,9 @@ class Respotter:
                 try:
                     previous_state = json.load(state_file)
                     self.responder_alerts = previous_state["responder_alerts"]
-                    self.vulnerable_alerts = previous_state["vulnerable_alerts"]
                     self.remediation_alerts = previous_state["remediation_alerts"]
                     for ip in self.responder_alerts:
                         self.responder_alerts[ip] = datetime.fromisoformat(self.responder_alerts[ip])
-                    for ip in self.vulnerable_alerts:
-                        for protocol in self.vulnerable_alerts[ip]:
-                            self.vulnerable_alerts[ip][protocol] = datetime.fromisoformat(self.vulnerable_alerts[ip][protocol])
                     for ip in self.remediation_alerts:
                         for protocol in self.remediation_alerts[ip]:
                             self.remediation_alerts[ip][protocol] = datetime.fromisoformat(self.remediation_alerts[ip][protocol])
@@ -85,11 +81,10 @@ class Respotter:
                     raise FileNotFoundError
         except FileNotFoundError:
             self.responder_alerts = {}
-            self.vulnerable_alerts = {}
             self.remediation_alerts = {}
             Path("state").mkdir(parents=True, exist_ok=True)
             with open(self.state_file, "w") as state_file:
-                json.dump({"responder_alerts": {}, "vulnerable_alerts": {}, "remediation_alerts": {}}, state_file)
+                json.dump({"responder_alerts": {}, "remediation_alerts": {}}, state_file)
         # get broadcast IP for Netbios
         if subnet:
             try:
@@ -143,35 +138,6 @@ class Respotter:
                 for ip in new_state:
                     new_state[ip] = new_state[ip].isoformat()
                 state["responder_alerts"] = new_state
-                state_file.seek(0)
-                json.dump(state, state_file)
-        
-    def webhook_sniffer_alert(self, protocol, requester_ip, requested_hostname):
-        with self.state_lock:
-            if requester_ip in self.vulnerable_alerts:
-                if protocol in self.vulnerable_alerts[requester_ip]:
-                    if self.vulnerable_alerts[requester_ip][protocol] > datetime.now() - timedelta(days=1):
-                        return
-            title = f"Vulnerable host detected!"
-            details = f"{protocol.upper()} query for '{requested_hostname}' from {requester_ip} - potentially vulnerable to Responder"
-            for service in ["teams", "discord", "slack"]:
-                if service in self.webhooks:
-                    try:
-                        eval(f"send_{service}_message")(self.webhooks[service], title=title, details=details)
-                        self.log.info(f"[+] Alert sent to {service.capitalize()} for {requester_ip}")
-                    except WebhookException as e:
-                        self.log.error(f"[!] {service.capitalize()} webhook failed: {e}")
-            if requester_ip in self.vulnerable_alerts:
-                self.vulnerable_alerts[requester_ip][protocol] = datetime.now()
-            else:
-                self.vulnerable_alerts[requester_ip] = {protocol: datetime.now()}
-            with open(self.state_file, "r+") as state_file:
-                state = json.load(state_file)
-                new_state = deepcopy(self.vulnerable_alerts)
-                for ip in new_state:
-                    for protocol in new_state[ip]:
-                        new_state[ip][protocol] = new_state[ip][protocol].isoformat()
-                state["vulnerable_alerts"] = new_state
                 state_file.seek(0)
                 json.dump(state, state_file)
                 
@@ -332,7 +298,7 @@ class Respotter:
                 return
             self.log.critical(f"[!] [LLMNR] LLMNR query for '{requested_hostname}' from {packet[IP].src} - potentially vulnerable to Responder")
             if self.is_daemon:
-                self.webhook_sniffer_alert("LLMNR", packet[IP].src, requested_hostname)
+                self.get_remediation_advice("LLMNR", packet[IP].src, requested_hostname)
     
     def mdns_found(self, packet):
         for dns_packet in packet[DNS].qd:
@@ -341,7 +307,7 @@ class Respotter:
                 return
             self.log.critical(f"[!] [MDNS] mDNS query for '{requested_hostname}' from {packet[IP].src} - potentially vulnerable to Responder")
             if self.is_daemon:
-                self.webhook_sniffer_alert("mDNS", packet[IP].src, requested_hostname)
+                self.get_remediation_advice("MDNS", packet[IP].src, requested_hostname)
     
     def nbns_found(self, packet):
         requested_hostname = packet[NBNSQueryRequest].QUESTION_NAME.decode()
@@ -349,7 +315,7 @@ class Respotter:
             return
         self.log.critical(f"[!] [NBT-NS] NBT-NS query for '{requested_hostname}' from {packet[IP].src} - potentially vulnerable to Responder")
         if self.is_daemon:
-            self.webhook_sniffer_alert("Netbios", packet[IP].src, requested_hostname)
+            self.get_remediation_advice("NBT-NS", packet[IP].src, requested_hostname)
             
     def get_remediation_advice(self, protocol, requester_ip, requested_hostname):
         if ip := self.dns_lookup(requested_hostname):
