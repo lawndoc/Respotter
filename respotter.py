@@ -293,29 +293,38 @@ class Respotter:
         
     def llmnr_found(self, packet):
         for dns_packet in packet[LLMNRQuery].qd:
+            requester_ip = packet[IP].src
+            if requester_ip == conf.iface:
+                return
             requested_hostname = dns_packet.qname.decode()
             if requested_hostname == self.hostname + ".":
                 return
-            self.log.critical(f"[!] [LLMNR] LLMNR query for '{requested_hostname}' from {packet[IP].src} - potentially vulnerable to Responder")
+            self.log.critical(f"[!] [LLMNR] LLMNR query for '{requested_hostname}' from {requester_ip} - potentially vulnerable to Responder")
             if self.is_daemon:
-                self.get_remediation_advice("LLMNR", packet[IP].src, requested_hostname)
+                self.get_remediation_advice("LLMNR", requester_ip, requested_hostname)
     
     def mdns_found(self, packet):
         for dns_packet in packet[DNS].qd:
+            requester_ip = packet[IP].src
+            if requester_ip == conf.iface:
+                return
             requested_hostname = dns_packet.qname.decode()
             if requested_hostname == self.hostname + ".":
                 return
-            self.log.critical(f"[!] [MDNS] mDNS query for '{requested_hostname}' from {packet[IP].src} - potentially vulnerable to Responder")
+            self.log.critical(f"[!] [MDNS] mDNS query for '{requested_hostname}' from {requester_ip} - potentially vulnerable to Responder")
             if self.is_daemon:
-                self.get_remediation_advice("MDNS", packet[IP].src, requested_hostname)
+                self.get_remediation_advice("MDNS", requester_ip, requested_hostname)
     
     def nbns_found(self, packet):
+        requester_ip = packet[IP].src
+        if requester_ip == conf.iface:
+            return
         requested_hostname = packet[NBNSQueryRequest].QUESTION_NAME.decode()
         if requested_hostname == self.hostname[:15]:
             return
-        self.log.critical(f"[!] [NBT-NS] NBT-NS query for '{requested_hostname}' from {packet[IP].src} - potentially vulnerable to Responder")
+        self.log.critical(f"[!] [NBT-NS] NBT-NS query for '{requested_hostname}' from {requester_ip} - potentially vulnerable to Responder")
         if self.is_daemon:
-            self.get_remediation_advice("NBT-NS", packet[IP].src, requested_hostname)
+            self.get_remediation_advice("NBT-NS", requester_ip, requested_hostname)
             
     def get_remediation_advice(self, protocol, requester_ip, requested_hostname):
         if ip := self.dns_lookup(requested_hostname):
