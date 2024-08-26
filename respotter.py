@@ -170,12 +170,14 @@ class Respotter:
                 state_file.seek(0)
                 json.dump(state, state_file)
     
-    def send_llmnr_request(self):
+    def send_llmnr_request(self, hostname=""):
         # LLMNR uses the multicast IP 224.0.0.252 and UDP port 5355
-        packet = IP(dst="224.0.0.252")/UDP(dport=5355)/LLMNRQuery(qd=DNSQR(qname=self.hostname))
+        if not hostname:
+            hostname = self.hostname
+        packet = IP(dst="224.0.0.252")/UDP(dport=5355)/LLMNRQuery(qd=DNSQR(qname=hostname))
         response = sr1(packet, timeout=1, verbose=0)
         if not response:
-            self.log.debug(f"[*] [LLMNR] No response for '{self.hostname}'")
+            self.log.debug(f"[*] [LLMNR] No response for '{hostname}'")
             return
         for p in response:
             self.log.debug(p)
@@ -184,16 +186,18 @@ class Respotter:
             if sniffed_packet.haslayer(LLMNRResponse):
                 for answer in sniffed_packet[LLMNRResponse].an:
                     if answer.type == 1:  # Type 1 is A record, which contains the IP address
-                        self.log.critical(f"[!] [LLMNR] Responder detected at: {answer.rdata} - responded to name '{self.hostname}'")
+                        self.log.critical(f"[!] [LLMNR] Responder detected at: {answer.rdata} - responded to name '{hostname}'")
                         if self.is_daemon:
                             self.webhook_responder_alert(answer.rdata)
         
-    def send_mdns_request(self):
+    def send_mdns_request(self, hostname=""):
         # mDNS uses the multicast IP 224.0.0.251 and UDP port 5353
-        packet = IP(dst="224.0.0.251")/UDP(dport=5353)/DNS(rd=1, qd=DNSQR(qname=self.hostname))
+        if not hostname:
+            hostname = self.hostname
+        packet = IP(dst="224.0.0.251")/UDP(dport=5353)/DNS(rd=1, qd=DNSQR(qname=hostname))
         response = sr1(packet, timeout=1, verbose=0)
         if not response:
-            self.log.debug(f"[*] [MDNS] No response for '{self.hostname}'")
+            self.log.debug(f"[*] [MDNS] No response for '{hostname}'")
             return
         for p in response:
             self.log.debug(p)
@@ -202,18 +206,21 @@ class Respotter:
             if sniffed_packet is not None and sniffed_packet.haslayer(DNS):
                 for answer in sniffed_packet[DNS].an:
                     if answer.type == 1:
-                        self.log.critical(f"[!] [MDNS] Responder detected at: {answer.rdata} - responded to name '{self.hostname}'")
+                        self.log.critical(f"[!] [MDNS] Responder detected at: {answer.rdata} - responded to name '{hostname}'")
                         if self.is_daemon:
                             self.webhook_responder_alert(answer.rdata)
         
-    def send_nbns_request(self):
+    def send_nbns_request(self, hostname=""):
         try:
             self.broadcast_ip
         except AttributeError:
             self.log.error("[!] ERROR: broadcast IP not set. Skipping Netbios request.")
             return
+        if not hostname:
+            hostname = self.hostname
         # WORKAROUND: Scapy not matching long req to resp (secdev/scapy PR #4446)
-        hostname = self.hostname[:15]
+        if len(hostname) > 15:
+            hostname = hostname[:15]
         # Netbios uses the broadcast IP and UDP port 137
         packet = IP(dst=self.broadcast_ip)/UDP(sport=137, dport=137)/NBNSHeader(OPCODE=0x0, NM_FLAGS=0x11, QDCOUNT=1)/NBNSQueryRequest(SUFFIX="file server service", QUESTION_NAME=hostname, QUESTION_TYPE="NB")
         response = sr1(packet, timeout=1, verbose=0)
