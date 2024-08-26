@@ -263,21 +263,21 @@ class Respotter:
         """
         llmnr_sniffer = AsyncSniffer(
             filter="udp port 5355",
-            lfilter=lambda pkt: pkt.haslayer(LLMNRQuery), # TODO: should this be DNSQR?
+            lfilter=lambda pkt: pkt.haslayer(LLMNRQuery) and pkt[IP].src != conf.iface, # TODO: should this be DNSQR?
             started_callback=self.sniffer_startup,
             prn=self.llmnr_found,
             store=0
         )
         mdns_sniffer = AsyncSniffer(
             filter="udp port 5353",
-            lfilter=lambda pkt: pkt.haslayer(DNS), # TODO: should this be DNSQR?
+            lfilter=lambda pkt: pkt.haslayer(DNS) and pkt[IP].src != conf.iface, # TODO: should this be DNSQR?
             started_callback=self.sniffer_startup,
             prn=self.mdns_found,
             store=0
         )
         nbns_sniffer = AsyncSniffer(
             filter="udp port 137",
-            lfilter=lambda pkt: pkt.haslayer(NBNSQueryRequest),
+            lfilter=lambda pkt: pkt.haslayer(NBNSQueryRequest) and pkt[IP].src != conf.iface,
             started_callback=self.sniffer_startup,
             prn=self.nbns_found,
             store=0
@@ -294,8 +294,6 @@ class Respotter:
     def llmnr_found(self, packet):
         for dns_packet in packet[LLMNRQuery].qd:
             requester_ip = packet[IP].src
-            if requester_ip == conf.iface:
-                return
             requested_hostname = dns_packet.qname.decode()
             if requested_hostname == self.hostname + ".":
                 return
@@ -306,8 +304,6 @@ class Respotter:
     def mdns_found(self, packet):
         for dns_packet in packet[DNS].qd:
             requester_ip = packet[IP].src
-            if requester_ip == conf.iface:
-                return
             requested_hostname = dns_packet.qname.decode()
             if requested_hostname == self.hostname + ".":
                 return
@@ -317,8 +313,6 @@ class Respotter:
     
     def nbns_found(self, packet):
         requester_ip = packet[IP].src
-        if requester_ip == conf.iface:
-            return
         requested_hostname = packet[NBNSQueryRequest].QUESTION_NAME.decode()
         if requested_hostname == self.hostname[:15]:
             return
