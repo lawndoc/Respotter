@@ -59,6 +59,8 @@ class Respotter:
         # import configuration
         self.excluded_protocols = excluded_protocols
         self.hostname = hostname
+        if self.hostname == "Loremipsumdolorsitamet":
+            self.log.warning("[-] WARNING: using default hostname 'Loremipsumdolorsitamet' - set a more believable hostname for better OPSEC")
         self.is_daemon = False
         self.verbosity = verbosity
         # state persistence
