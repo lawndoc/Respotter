@@ -75,8 +75,7 @@ class Respotter:
                     for ip in self.responder_alerts:
                         self.responder_alerts[ip] = datetime.fromisoformat(self.responder_alerts[ip])
                     for ip in self.remediation_alerts:
-                        for protocol in self.remediation_alerts[ip]:
-                            self.remediation_alerts[ip][protocol] = datetime.fromisoformat(self.remediation_alerts[ip][protocol])
+                        self.remediation_alerts[ip] = datetime.fromisoformat(self.remediation_alerts[ip])
                 except json.JSONDecodeError:
                     raise FileNotFoundError
         except FileNotFoundError:
