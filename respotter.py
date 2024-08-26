@@ -263,21 +263,21 @@ class Respotter:
         """
         llmnr_sniffer = AsyncSniffer(
             filter="udp port 5355",
-            lfilter=lambda pkt: pkt.haslayer(LLMNRQuery) and pkt[IP].src != conf.iface, # TODO: should this be DNSQR?
+            lfilter=lambda pkt: pkt.haslayer(LLMNRQuery) and pkt[IP].src != conf.iface.ip, # TODO: should this be DNSQR?
             started_callback=self.sniffer_startup,
             prn=self.llmnr_found,
             store=0
         )
         mdns_sniffer = AsyncSniffer(
             filter="udp port 5353",
-            lfilter=lambda pkt: pkt.haslayer(DNS) and pkt[IP].src != conf.iface, # TODO: should this be DNSQR?
+            lfilter=lambda pkt: pkt.haslayer(DNS) and pkt[IP].src != conf.iface.ip, # TODO: should this be DNSQR?
             started_callback=self.sniffer_startup,
             prn=self.mdns_found,
             store=0
         )
         nbns_sniffer = AsyncSniffer(
             filter="udp port 137",
-            lfilter=lambda pkt: pkt.haslayer(NBNSQueryRequest) and pkt[IP].src != conf.iface,
+            lfilter=lambda pkt: pkt.haslayer(NBNSQueryRequest) and pkt[IP].src != conf.iface.ip,
             started_callback=self.sniffer_startup,
             prn=self.nbns_found,
             store=0
