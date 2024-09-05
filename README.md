@@ -18,11 +18,11 @@ docker run --rm --net=host ghcr.io/lawndoc/respotter
 
 ![demo gif](./assets/respotter_demo.gif)
 
-## Vulnerable host identification
+## Advice for disabling vulnerable protocols
 
-Respotter will also listen for LLMNR, mDNS, and NBNS queries that originate from other hosts. Queries from other hosts will raise an alert, warning that the host may be susceptible to credential theft from Responder. Webhook alerts for vulnerable hosts are rate limited to 1 alert per IP:Protocol per day.
+Respotter tells you what will break if you disable LLMNR, mDNS, and Netbios protocols on your network devices. If any name queries are found that need to be addressed, Respotter will tell you how to fix it. Once no more remediation advice is given, you can safely disable LLMNR, mDNS, and Netbios on all hosts in Respotter's subnet.
 
-Respotter does NOT attempt to poison responses to sniffed queries. Poisoning responses isn't opsec-safe for the honeypot, and may cause issues with the client. Use Responder to identify accounts that are vulnerable to poisoning once a vulnerable host has been discovered by Respotter.
+Respotter will log all sniffed queries, but it does NOT attempt to poison responses to them. Use Responder to identify accounts that are vulnerable to poisoning once a vulnerable host has been discovered by Respotter.
 
 ## Other notes
 
