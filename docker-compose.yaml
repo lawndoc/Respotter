@@ -1,9 +1,11 @@
 version: "3.9"
 services:
-  plexms:
+  respotter:
     container_name: respotter
     image: ghcr.io/lawndoc/respotter:latest
     network_mode: host
+    cap_add:
+      - NET_RAW
     security_opt:
       - label:disable
     restart: always
