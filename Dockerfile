@@ -27,6 +27,7 @@ RUN mkdir -p /run
 WORKDIR /run
 COPY . .
 COPY config.json.template /config/config.json
+RUN mkdir -p /state
 COPY --from=deps /root/venv /root/venv
 
 # prepare runtime environment
