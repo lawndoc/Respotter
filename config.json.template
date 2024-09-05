@@ -7,5 +7,5 @@
     "syslog_address": "",
     "teams_webhook": "",
     "test_webhooks": false,
-    "verbosity": 2,
+    "verbosity": 2
 }
