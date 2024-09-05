@@ -71,20 +71,19 @@ class Respotter:
                 try:
                     previous_state = json.load(state_file)
                     self.responder_alerts = previous_state["responder_alerts"]
-                    self.vulnerable_alerts = previous_state["vulnerable_alerts"]
+                    self.remediation_alerts = previous_state["remediation_alerts"]
                     for ip in self.responder_alerts:
                         self.responder_alerts[ip] = datetime.fromisoformat(self.responder_alerts[ip])
-                    for ip in self.vulnerable_alerts:
-                        for protocol in self.vulnerable_alerts[ip]:
-                            self.vulnerable_alerts[ip][protocol] = datetime.fromisoformat(self.vulnerable_alerts[ip][protocol])
+                    for ip in self.remediation_alerts:
+                        self.remediation_alerts[ip] = datetime.fromisoformat(self.remediation_alerts[ip])
                 except json.JSONDecodeError:
                     raise FileNotFoundError
         except FileNotFoundError:
             self.responder_alerts = {}
-            self.vulnerable_alerts = {}
+            self.remediation_alerts = {}
             Path("state").mkdir(parents=True, exist_ok=True)
             with open(self.state_file, "w") as state_file:
-                json.dump({"responder_alerts": {}, "vulnerable_alerts": {}}, state_file)
+                json.dump({"responder_alerts": {}, "remediation_alerts": {}}, state_file)
         # get broadcast IP for Netbios
         if subnet:
             try:
@@ -140,42 +139,39 @@ class Respotter:
                 state["responder_alerts"] = new_state
                 state_file.seek(0)
                 json.dump(state, state_file)
-        
-    def webhook_sniffer_alert(self, protocol, requester_ip, requested_hostname):
+                
+    def webhook_remediation_alert(self, requester_ip, message):
         with self.state_lock:
-            if requester_ip in self.vulnerable_alerts:
-                if protocol in self.vulnerable_alerts[requester_ip]:
-                    if self.vulnerable_alerts[requester_ip][protocol] > datetime.now() - timedelta(days=1):
-                        return
-            title = f"Vulnerable host detected!"
-            details = f"{protocol.upper()} query for '{requested_hostname}' from {requester_ip} - potentially vulnerable to Responder"
+            if requester_ip in self.remediation_alerts:
+                if self.remediation_alerts[requester_ip] > datetime.now() - timedelta(hours=1):
+                    return
+            title = "Configuration issue detected!"
+            details = message
             for service in ["teams", "discord", "slack"]:
                 if service in self.webhooks:
                     try:
                         eval(f"send_{service}_message")(self.webhooks[service], title=title, details=details)
-                        self.log.info(f"[+] Alert sent to {service.capitalize()} for {requester_ip}")
+                        self.log.info(f"[+] Remediation alert sent to {service.capitalize()} for {requester_ip}")
                     except WebhookException as e:
                         self.log.error(f"[!] {service.capitalize()} webhook failed: {e}")
-            if requester_ip in self.vulnerable_alerts:
-                self.vulnerable_alerts[requester_ip][protocol] = datetime.now()
-            else:
-                self.vulnerable_alerts[requester_ip] = {protocol: datetime.now()}
+            self.remediation_alerts[requester_ip] = datetime.now()
             with open(self.state_file, "r+") as state_file:
                 state = json.load(state_file)
-                new_state = deepcopy(self.vulnerable_alerts)
+                new_state = deepcopy(self.remediation_alerts)
                 for ip in new_state:
-                    for protocol in new_state[ip]:
-                        new_state[ip][protocol] = new_state[ip][protocol].isoformat()
-                state["vulnerable_alerts"] = new_state
+                    new_state[ip] = new_state[ip].isoformat()
+                state["remediation_alerts"] = new_state
                 state_file.seek(0)
                 json.dump(state, state_file)
     
-    def send_llmnr_request(self):
+    def send_llmnr_request(self, hostname=""):
         # LLMNR uses the multicast IP 224.0.0.252 and UDP port 5355
-        packet = IP(dst="224.0.0.252")/UDP(dport=5355)/LLMNRQuery(qd=DNSQR(qname=self.hostname))
+        if not hostname:
+            hostname = self.hostname
+        packet = IP(dst="224.0.0.252")/UDP(dport=5355)/LLMNRQuery(qd=DNSQR(qname=hostname))
         response = sr1(packet, timeout=1, verbose=0)
         if not response:
-            self.log.debug(f"[*] [LLMNR] No response for '{self.hostname}'")
+            self.log.debug(f"[*] [LLMNR] No response for '{hostname}'")
             return
         for p in response:
             self.log.debug(p)
@@ -184,16 +180,18 @@ class Respotter:
             if sniffed_packet.haslayer(LLMNRResponse):
                 for answer in sniffed_packet[LLMNRResponse].an:
                     if answer.type == 1:  # Type 1 is A record, which contains the IP address
-                        self.log.critical(f"[!] [LLMNR] Responder detected at: {answer.rdata} - responded to name '{self.hostname}'")
+                        self.log.critical(f"[!] [LLMNR] Responder detected at: {answer.rdata} - responded to name '{hostname}'")
                         if self.is_daemon:
                             self.webhook_responder_alert(answer.rdata)
         
-    def send_mdns_request(self):
+    def send_mdns_request(self, hostname=""):
         # mDNS uses the multicast IP 224.0.0.251 and UDP port 5353
-        packet = IP(dst="224.0.0.251")/UDP(dport=5353)/DNS(rd=1, qd=DNSQR(qname=self.hostname))
+        if not hostname:
+            hostname = self.hostname
+        packet = IP(dst="224.0.0.251")/UDP(dport=5353)/DNS(rd=1, qd=DNSQR(qname=hostname))
         response = sr1(packet, timeout=1, verbose=0)
         if not response:
-            self.log.debug(f"[*] [MDNS] No response for '{self.hostname}'")
+            self.log.debug(f"[*] [MDNS] No response for '{hostname}'")
             return
         for p in response:
             self.log.debug(p)
@@ -202,18 +200,21 @@ class Respotter:
             if sniffed_packet is not None and sniffed_packet.haslayer(DNS):
                 for answer in sniffed_packet[DNS].an:
                     if answer.type == 1:
-                        self.log.critical(f"[!] [MDNS] Responder detected at: {answer.rdata} - responded to name '{self.hostname}'")
+                        self.log.critical(f"[!] [MDNS] Responder detected at: {answer.rdata} - responded to name '{hostname}'")
                         if self.is_daemon:
                             self.webhook_responder_alert(answer.rdata)
         
-    def send_nbns_request(self):
+    def send_nbns_request(self, hostname=""):
         try:
             self.broadcast_ip
         except AttributeError:
             self.log.error("[!] ERROR: broadcast IP not set. Skipping Netbios request.")
             return
+        if not hostname:
+            hostname = self.hostname
         # WORKAROUND: Scapy not matching long req to resp (secdev/scapy PR #4446)
-        hostname = self.hostname[:15]
+        if len(hostname) > 15:
+            hostname = hostname[:15]
         # Netbios uses the broadcast IP and UDP port 137
         packet = IP(dst=self.broadcast_ip)/UDP(sport=137, dport=137)/NBNSHeader(OPCODE=0x0, NM_FLAGS=0x11, QDCOUNT=1)/NBNSQueryRequest(SUFFIX="file server service", QUESTION_NAME=hostname, QUESTION_TYPE="NB")
         response = sr1(packet, timeout=1, verbose=0)
@@ -261,21 +262,21 @@ class Respotter:
         """
         llmnr_sniffer = AsyncSniffer(
             filter="udp port 5355",
-            lfilter=lambda pkt: pkt.haslayer(LLMNRQuery), # TODO: should this be DNSQR?
+            lfilter=lambda pkt: pkt.haslayer(LLMNRQuery) and pkt[IP].src != conf.iface.ip, # TODO: should this be DNSQR?
             started_callback=self.sniffer_startup,
             prn=self.llmnr_found,
             store=0
         )
         mdns_sniffer = AsyncSniffer(
             filter="udp port 5353",
-            lfilter=lambda pkt: pkt.haslayer(DNS), # TODO: should this be DNSQR?
+            lfilter=lambda pkt: pkt.haslayer(DNS) and pkt[IP].src != conf.iface.ip, # TODO: should this be DNSQR?
             started_callback=self.sniffer_startup,
             prn=self.mdns_found,
             store=0
         )
         nbns_sniffer = AsyncSniffer(
             filter="udp port 137",
-            lfilter=lambda pkt: pkt.haslayer(NBNSQueryRequest),
+            lfilter=lambda pkt: pkt.haslayer(NBNSQueryRequest) and pkt[IP].src != conf.iface.ip,
             started_callback=self.sniffer_startup,
             prn=self.nbns_found,
             store=0
@@ -291,29 +292,82 @@ class Respotter:
         
     def llmnr_found(self, packet):
         for dns_packet in packet[LLMNRQuery].qd:
+            requester_ip = packet[IP].src
             requested_hostname = dns_packet.qname.decode()
-            if requested_hostname == self.hostname + ".":
-                return
-            self.log.critical(f"[!] [LLMNR] LLMNR query for '{requested_hostname}' from {packet[IP].src} - potentially vulnerable to Responder")
+            self.log.critical(f"[!] [LLMNR] LLMNR query for '{requested_hostname}' from {requester_ip} - potentially vulnerable to Responder")
             if self.is_daemon:
-                self.webhook_sniffer_alert("LLMNR", packet[IP].src, requested_hostname)
+                self.get_remediation_advice("LLMNR", requester_ip, requested_hostname)
     
     def mdns_found(self, packet):
         for dns_packet in packet[DNS].qd:
+            requester_ip = packet[IP].src
             requested_hostname = dns_packet.qname.decode()
-            if requested_hostname == self.hostname + ".":
-                return
-            self.log.critical(f"[!] [MDNS] mDNS query for '{requested_hostname}' from {packet[IP].src} - potentially vulnerable to Responder")
+            self.log.critical(f"[!] [MDNS] mDNS query for '{requested_hostname}' from {requester_ip} - potentially vulnerable to Responder")
             if self.is_daemon:
-                self.webhook_sniffer_alert("mDNS", packet[IP].src, requested_hostname)
+                self.get_remediation_advice("MDNS", requester_ip, requested_hostname)
     
     def nbns_found(self, packet):
+        requester_ip = packet[IP].src
         requested_hostname = packet[NBNSQueryRequest].QUESTION_NAME.decode()
-        if requested_hostname == self.hostname[:15]:
-            return
-        self.log.critical(f"[!] [NBT-NS] NBT-NS query for '{requested_hostname}' from {packet[IP].src} - potentially vulnerable to Responder")
+        self.log.critical(f"[!] [NBT-NS] NBT-NS query for '{requested_hostname}' from {requester_ip} - potentially vulnerable to Responder")
         if self.is_daemon:
-            self.webhook_sniffer_alert("Netbios", packet[IP].src, requested_hostname)
+            self.get_remediation_advice("NBT-NS", requester_ip, requested_hostname)
+            
+    def get_remediation_advice(self, protocol, requester_ip, requested_hostname):
+        if ip := self.dns_lookup(requested_hostname):
+            if ip == requester_ip:
+                # Host looking for itself
+                self.log.debug(f"[*] [{protocol}] {requester_ip} is looking for itself")
+                return None
+            elif protocol == "NBT-NS":
+                # Netbios sometimes is used before doing a DNS lookup
+                return None
+            else:
+                # Host looking for another device
+                self.log.info(f"[*] [{protocol}] {requester_ip} has incorrect DNS server for {requested_hostname}")
+                advice = f"{requester_ip} unable to find host '{requested_hostname}' in DNS so it used {protocol}. Update the DNS settings on {requester_ip} to point to the correct DNS server"
+                self.webhook_remediation_alert(requester_ip, advice)
+        else:
+            if self.device_exists(requested_hostname):
+                # We got a response -- DNS server is missing a record for the host
+                self.log.info(f"[*] [{protocol}] DNS record missing for '{requested_hostname}' - add record to DNS server")
+                advice = f"{requester_ip} unable to find host '{requested_hostname}' in DNS so it used {protocol}. Add a DNS record for '{requested_hostname}' to the DNS server"
+                self.webhook_remediation_alert(requester_ip, advice)
+            else:
+                # We got no response -- the device doesn't exist
+                self.log.debug(f"[*] [{protocol}] {requester_ip} is looking for non-existent device {requested_hostname}")
+
+    def dns_lookup(self, hostname):
+        try:
+            return socket.gethostbyname(hostname)
+        except:
+            return None
+        
+    def device_exists(self, hostname):
+        # LLMNR
+        packet = IP(dst="224.0.0.252")/UDP(dport=5355)/LLMNRQuery(qd=DNSQR(qname=hostname))
+        response = sr1(packet, timeout=1, verbose=0)
+        if response:
+            return True
+        # mDNS
+        packet = IP(dst="224.0.0.251")/UDP(dport=5353)/DNS(rd=1, qd=DNSQR(qname=hostname))
+        response = sr1(packet, timeout=1, verbose=0)
+        if response:
+            return True
+        # Netbios
+        try:
+            self.broadcast_ip
+        except AttributeError:
+            return False
+        # WORKAROUND: Scapy not matching long req to resp (secdev/scapy PR #4446)
+        if len(hostname) > 15:
+            hostname = hostname[:15]
+        packet = IP(dst=self.broadcast_ip)/UDP(sport=137, dport=137)/NBNSHeader(OPCODE=0x0, NM_FLAGS=0x11, QDCOUNT=1)/NBNSQueryRequest(SUFFIX="file server service", QUESTION_NAME=hostname, QUESTION_TYPE="NB")
+        response = sr1(packet, timeout=1, verbose=0)
+        if response:
+            return True
+        return False
+        
             
 def parse_options():
     # add_help=False so it doesn't parse -h yet
