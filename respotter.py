@@ -319,6 +319,9 @@ class Respotter:
                 # Host looking for itself
                 self.log.debug(f"[*] [{protocol}] {requester_ip} is looking for itself")
                 return None
+            elif protocol == "NBT-NS":
+                # Netbios sometimes is used before doing a DNS lookup
+                return None
             else:
                 # Host looking for another device
                 self.log.info(f"[*] [{protocol}] {requester_ip} has incorrect DNS server for {requested_hostname}")
