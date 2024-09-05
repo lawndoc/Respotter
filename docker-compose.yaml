@@ -4,7 +4,7 @@ services:
     container_name: respotter
     image: ghcr.io/lawndoc/respotter:latest
     network_mode: host
-    security_opts:
+    security_opt:
       - label:disable
     restart: always
     volumes:
