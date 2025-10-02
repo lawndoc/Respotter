@@ -1,5 +1,5 @@
 ### Builder image
-FROM ubuntu:latest AS deps
+FROM ubuntu:24.10 AS deps
 
 # install python
 ARG DEBIAN_FRONTEND=noninteractive
@@ -15,7 +15,7 @@ COPY requirements.txt .
 RUN pip install -r requirements.txt
 
 ### Runner image
-FROM ubuntu:latest AS runner-image
+FROM ubuntu:24.10 AS runner-image
 
 # install python
 ARG DEBIAN_FRONTEND=noninteractive
