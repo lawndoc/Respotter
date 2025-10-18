@@ -42,20 +42,10 @@ class Respotter:
                  syslog_address="",
                  teams_webhook="",
                  test_webhooks=False,
+                 log_file="/var/log/respotter.log",
                  verbosity=2,
                 ):
-        # initialize logger
-        self.log = logging.getLogger('respotter')
-        formatter = logging.Formatter('')
-        handler = logging.StreamHandler()
-        handler.setFormatter(formatter)
-        self.log.addHandler(handler)
-        self.log.setLevel((5 - verbosity) * 10)
-        if syslog_address:
-            handler = logging.handlers.SysLogHandler(address=(syslog_address, 514))
-            formatter = logging.Formatter('Respotter {processName}[{process}]: {message}', style='{')
-            handler.setFormatter(formatter)
-            self.log.addHandler(handler)
+        self._init_logger(syslog_address=syslog_address, log_file=log_file, verbosity=verbosity)
         # import configuration
         self.excluded_protocols = excluded_protocols
         self.hostname = hostname
@@ -104,6 +94,25 @@ class Respotter:
                 self.log.warning(f"[-] WARNING: {service} webhook URL not set")
         if test_webhooks:
             self.webhook_test()
+
+    def _init_logger(self, syslog_address="", log_file="", verbosity=2):
+        self.log = logging.getLogger('respotter')
+        formatter = logging.Formatter('')
+        handler = logging.StreamHandler()
+        handler.setFormatter(formatter)
+        self.log.addHandler(handler)
+        self.log.setLevel((5 - verbosity) * 10)
+        if syslog_address:
+            handler = logging.handlers.SysLogHandler(address=(syslog_address, 514))
+            formatter = logging.Formatter('Respotter {processName}[{process}]: {message}', style='{')
+            handler.setFormatter(formatter)
+            self.log.addHandler(handler)
+        if log_file:
+            Path(log_file).parent.mkdir(parents=True, exist_ok=True)
+            handler = logging.FileHandler(log_file)
+            formatter = logging.Formatter('{asctime} - {name} - {levelname} - {message}', style='{')
+            handler.setFormatter(formatter)
+            self.log.addHandler(handler)
             
     def webhook_test(self):
         title = "Test message"
