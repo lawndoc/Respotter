@@ -395,6 +395,7 @@ def parse_options():
         "syslog_address": "",
         "teams_webhook": "",
         "test_webhooks": False,
+        "log_file"="/var/log/respotter.log",
         "verbosity": 2,
     }
 
@@ -418,7 +419,7 @@ def parse_options():
     if int(args.verbosity) > 4:
         print(f"Final config: {args}\n")
     return args
-    
+
 
 if __name__ == "__main__":
     print(respotter_ascii_logo)
@@ -442,6 +443,7 @@ if __name__ == "__main__":
                           syslog_address=options.syslog_address,
                           teams_webhook=options.teams_webhook,
                           test_webhooks=options.test_webhooks,
+                          log_file=options.log_file,
                           verbosity=int(options.verbosity)
                           )
     
