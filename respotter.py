@@ -395,7 +395,7 @@ def parse_options():
         "syslog_address": "",
         "teams_webhook": "",
         "test_webhooks": False,
-        "log_file"="/var/log/respotter.log",
+        "log_file": "/var/log/respotter.log",
         "verbosity": 2,
     }
 
