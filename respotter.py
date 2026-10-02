@@ -127,6 +127,16 @@ class Respotter:
                 
     def webhook_responder_alert(self, responder_ip):
         with self.state_lock:
+            # Alert handlers run in separate worker processes, each with its own
+            # copy of the in-memory dictionaries. Refresh from shared state while
+            # holding the interprocess lock so one worker cannot erase another's
+            # cooldown entry.
+            with open(self.state_file, "r") as state_file:
+                state = json.load(state_file)
+            self.responder_alerts = {
+                ip: datetime.fromisoformat(timestamp)
+                for ip, timestamp in state["responder_alerts"].items()
+            }
             if responder_ip in self.responder_alerts:
                 if self.responder_alerts[responder_ip] > datetime.now() - timedelta(hours=1):
                     return
@@ -151,6 +161,13 @@ class Respotter:
                 
     def webhook_remediation_alert(self, requester_ip, message):
         with self.state_lock:
+            # Refresh the process-local copy before applying the shared cooldown.
+            with open(self.state_file, "r") as state_file:
+                state = json.load(state_file)
+            self.remediation_alerts = {
+                ip: datetime.fromisoformat(timestamp)
+                for ip, timestamp in state["remediation_alerts"].items()
+            }
             if requester_ip in self.remediation_alerts:
                 if self.remediation_alerts[requester_ip] > datetime.now() - timedelta(hours=1):
                     return
